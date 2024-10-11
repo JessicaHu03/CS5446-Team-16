@@ -1,0 +1,2 @@
+class TicketNotAvailableException(Exception):
+    pass
