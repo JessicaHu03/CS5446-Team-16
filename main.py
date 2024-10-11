@@ -13,6 +13,7 @@ def main():
         elif choice == '2':
             book_ticket()
         elif choice == '3':
+            refund()
             break
         else:
             print("Invalid choice. Please try again.")
