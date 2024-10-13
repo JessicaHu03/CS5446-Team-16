@@ -23,9 +23,23 @@ class TicketUseCase:
         self.flight_repository.update_flight_stock(flight_id, -num_passengers)
         return ticket
 
-    def exchange_ticket(self, ticket):
-        new_ticket = ticket
+    def exchange_ticket(self, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info):
+        flight = self.flight_repository.get_flight_by_id(flight_id)
+        new_flight = self.flight_repository.get_flight_by_id(new_flight_id)
+        
+        if not new_flight_id or new_flight_id.stock < num_passengers_to_change:
+            raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
+        
+        price_gap = (flight.price-new_flight.price) * num_passengers_to_change
+        if price_gap > 0:
+            self.payment_gateway.process_payment(payment_info, price_gap)
+        if price_gap < 0:
+            self.payment_gateway.process_payment(payment_info, -price_gap)
+        
+        new_ticket = Ticket(new_flight, user_id, num_passengers_to_change, new_flight.price)
+        self.flight_repository.update_flight_stock(new_flight, -num_passengers_to_change)
+        self.flight_repository.update_flight_stock(flight, +num_passengers_to_change)
+        
         return new_ticket
     
-    def refund(self, ticket):
-        return ticket
+    
