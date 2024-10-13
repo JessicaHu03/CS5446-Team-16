@@ -1,11 +1,13 @@
 from application.ticket_use_case import TicketUseCase
 from infrastructure.flight_repository import FlightRepository
 from infrastructure.payment_gateway import PaymentGateway
+from infrastructure.order_repository import OrderRepository
 
 # Instantiate dependencies
 flight_repo = FlightRepository(db_connection="data/airline.db")
+order_repo = OrderRepository(db_connection="data/airline.db")
 payment_gateway = PaymentGateway()
-ticket_use_case = TicketUseCase(flight_repo, payment_gateway)
+ticket_use_case = TicketUseCase(flight_repo, payment_gateway, order_repo)
 
 def available_tickets():
     departure = input("Enter departure city: ")
@@ -41,3 +43,16 @@ def book_ticket():
     
     ticket = ticket_use_case.book_ticket(flight_id, user_id, num_passengers, payment_info)
     print("Ticket booked:", ticket)
+
+def refund():
+    user_id = int(input("Enter user ID: "))
+    user_name = input("Enter your name: ")
+    passport_num = input("Enter your passport number: ")
+    order_id = int(input("Enter order ID: "))
+
+    result = ticket_use_case.refund_ticket(user_id, user_name, passport_num, order_id)
+    if result:
+        print("Ticket refunded.")
+    else:
+        print("Ticket not refunded due to error.")
+    
