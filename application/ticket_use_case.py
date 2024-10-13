@@ -22,3 +22,10 @@ class TicketUseCase:
         ticket = Ticket(flight, user_id, num_passengers, total_price)
         self.flight_repository.update_flight_stock(flight_id, -num_passengers)
         return ticket
+
+    def exchange_ticket(self, ticket):
+        new_ticket = ticket
+        return new_ticket
+    
+    def refund(self, ticket):
+        return ticket
