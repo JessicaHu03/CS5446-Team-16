@@ -42,3 +42,11 @@ class FlightRepository:
         cursor.execute(query, (num_passengers_change, flight_id))
         connection.commit()
         connection.close()
+
+    def is_flight_refundable(self, flight_id):
+        connection = self.connect()
+        cursor = connection.cursor()
+        query = 'SELECT is_refundable FROM Flight WHERE id = ?'
+        cursor.execute(query, (flight_id))
+        is_refundable = cursor.fetchone()[0]
+        return is_refundable
