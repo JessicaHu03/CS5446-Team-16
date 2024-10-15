@@ -34,3 +34,4 @@ content: The simulated patient's dialogue.
         except Exception as e:
             print(e)
             time.sleep(0.5)
+
