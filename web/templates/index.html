@@ -1,0 +1,53 @@
+<html>
+
+<head>
+	<!-- seo related -->
+	<title>Airline Chatbot</title>
+	<!-- meta related -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<!-- vendor css & style files -->
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Josefin+Sans:300|Open+Sans:300|Oxygen|Material+Icons"
+		rel="stylesheet">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	<!-- custom css -->
+	<!-- <link rel="stylesheet" type="text/css" href="static/main.css"> -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename = 'css/main.css') }}">
+</head>
+
+<body>
+	<div class="container-fluid">
+		<div class="row padded_row">
+			<div class="col-md-8">
+			<!-- <div style="width: 60%;"> -->
+				<div class="chat_window">
+					<div class="top_menu">
+						<div class="title">Airline Chatbot</div>
+					</div>
+					<!-- dynamically rendered -->
+					<ul class="messages"></ul>
+					<!-- input area -->
+					<div class="bottom_wrapper">
+                        <form id="message_form" autocomplete="off">
+                            <input id="message_input" type="text" placeholder="Type your message here..." />
+                            <button type="submit">Send</button>
+                        </form>
+                    </div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- vendor script files -->
+	<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js">
+	</script>
+
+	<!-- custom scripts -->
+	<!-- <script src="static/main.js"></script> -->
+    <script src="{{ url_for('static', filename = 'js/main.js') }}"></script>
+</body>
+
+</html>
