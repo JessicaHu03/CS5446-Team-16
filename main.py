@@ -1,4 +1,4 @@
-from presentation.cli import available_tickets, book_ticket, refund
+from presentation.cli import available_tickets, book_ticket, refund, exchange_ticket
 
 def main():
     while True:
@@ -16,7 +16,7 @@ def main():
         elif choice == '3':
             refund()    
         elif choice == '4':
-            break
+            exchange_ticket()
         else:
             print("Invalid choice. Please try again.")
 

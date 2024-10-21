@@ -24,8 +24,15 @@ class TicketUseCase:
         self.flight_repository.update_flight_stock(flight_id, -num_passengers)
         return ticket
 
-
+    def get_user_flight_id(self, order_id, passport_num, user_id):
+        is_correct = self.order_repository.is_order_correct(order_id, user_id, passport_num) # check user input
+        
+        if not is_correct:
+            raise OrderDoesNotExistException("Order does not exist or is not yours")
+        return self.order_repository.get_flight_by_order(order_id)
+    
     def exchange_ticket(self, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info):
+        
         flight = self.flight_repository.get_flight_by_id(flight_id)
         new_flight = self.flight_repository.get_flight_by_id(new_flight_id)
         
@@ -43,14 +50,10 @@ class TicketUseCase:
         self.flight_repository.update_flight_stock(flight, +num_passengers_to_change)
         
         return new_ticket
-    
-    
 
     def refund_ticket(self, user_id, user_name,passport_num, order_id):
-        is_correct = self.order_repository.is_order_correct(order_id, user_id, passport_num) # check user input
-        if not is_correct:
-            raise OrderDoesNotExistException("Order does not exist or is not yours")
-        flight_id = self.order_repository.get_flight_by_order(order_id)
+
+        flight_id = self.get_user_flight_id(order_id, passport_num, user_id)
         is_refundable = self.flight_repository.is_flight_refundable(flight_id) # check if is refundable
         if is_refundable:
             self.flight_repository.update_flight_stock(flight_id, 1) # update flight stock
