@@ -23,6 +23,8 @@ def available_tickets(departure, destination, date, flight_class, num_passengers
     print("Available flights:")
     for flight in available_flights:
         print(flight)
+    
+    return flight
 
 
 def book_ticket(user_id, user_name, passport_num, flight_id, num_passengers, card_number, expiry_date, cvv):
@@ -53,6 +55,8 @@ def book_ticket(user_id, user_name, passport_num, flight_id, num_passengers, car
         flight_id, user_id, num_passengers, payment_info)
     print("Ticket booked:", ticket)
 
+    return ticket
+
 
 def refund(user_id, user_name, passport_num, order_id):
     # user_id = int(input("Enter user ID: "))
@@ -64,8 +68,10 @@ def refund(user_id, user_name, passport_num, order_id):
         user_id, user_name, passport_num, order_id)
     if result:
         print("Ticket refunded.")
+        return False
     else:
         print("Ticket not refunded due to error.")
+        return True
 
 def check_order(order_id, passport_num, user_id):
     
@@ -73,7 +79,7 @@ def check_order(order_id, passport_num, user_id):
 
     return True
 
-def exchange_ticket(order_id, passport_num, user_id, departure, destination, date, flight_class, num_passengers_to_change,card_number, expiry_date, cvv):
+def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passengers_to_change,card_number, expiry_date, cvv):
     # user_id = int(input("Enter user ID: "))
     # order_id = input("Enter your order ID: ")
     # passport_num = int(input("Enter Passport: "))
@@ -85,8 +91,6 @@ def exchange_ticket(order_id, passport_num, user_id, departure, destination, dat
     # date = input("Enter departure date (YYYY-MM-DD): ")
     # flight_class = input("Enter flight class (Economy/Business): ")
     # num_passengers_to_change = int(input("Enter number of passengers to exchange: "))
-
-    new_flight_id = ticket_use_case.search_available_flights(departure, destination, date, flight_class, num_passengers_to_change)
     
     # payment_info = {
     #     'card_number': input("Enter card number: "),
@@ -101,10 +105,12 @@ def exchange_ticket(order_id, passport_num, user_id, departure, destination, dat
     }
 
     try:
-        new_ticket = ticket_use_case.exchange_ticket(
+        new_ticket, price_gap = ticket_use_case.exchange_ticket(
             flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info
         )
         print("Ticket exchanged successfully:", new_ticket)
 
     except Exception as e:
         print(f"Error: {e}")
+    
+    return new_ticket, price_gap
