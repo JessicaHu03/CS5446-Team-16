@@ -175,7 +175,6 @@ if __name__ == "__main__":
             available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
         elif data_dict["query"] == "book":
             available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
-            # show available flights to user, then ask if he wants to book
             book_flight = conversation_book(available_flight)
             extracted_information_add = extract_information(book_flight)
             
