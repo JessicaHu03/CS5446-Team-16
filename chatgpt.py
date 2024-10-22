@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 import json
 import time
+import presentation.cli as cli
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -20,13 +21,14 @@ def conversation():
         1. Ask user what the purpose of the conversation is.
         2. No matter what the user says first, collect the necessary information based on the request by asking the information one by one, in order to avoid ambiguity.:
 
-        - **Search Available Tickets**: departure location, destination, departure date, number of passengers.
-        - **Booking Tickets**: all info for available tickets, plus customer name, ID, 16-digit card number, expiration date (MM/YY), and 3-digit CVV.
+        - **Search Available Tickets**: departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.
+        - **Booking Tickets**: all info for available tickets
         - **Refund**: user ID, name, passport number, order ID.
-        - **Exchange**: same as refund, plus new flight details (departure, destination, date, passengers), and payment info (card number, expiration date, CVV).
-        Note that you can only ask user the above information, no other information should be asked.
-        3. After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
+        - **Exchange**: same as refund, plus new flight details (departure, destination, departure date (YYYY-MM-DD), new flight class (First/Business/Economy), new number of passengers), and payment info (card number, expiration date, CVV).
+        Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
+        3. After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response. also add a key-value pair where key is "query", and purpose is the purpose of this conversation (available options are only search, book, refund, exchange) as the last row of the summary.
         """
+        
     messages = [{
         "role": "system",
         "content": instruction
@@ -56,7 +58,7 @@ def conversation():
             
             # Ask for confirmation if all necessary information is collected
             if "confirm" in content.lower():
-                confirmation = input("User (confirm/yes): ").lower()
+                confirmation = input("User (yes/no): ").lower()
                 if confirmation == "confirm" or confirmation == "correct" or confirmation == "yes":
                     print("Chatbot: Thank you! The information has been confirmed.")
                     # Collect information into a JSON format
@@ -66,6 +68,59 @@ def conversation():
             print(e)
             time.sleep(0.5)
 
+def conversation_book(available_flight):
+    
+    instruction = f"""
+        Task Description:
+        You are simulating a conversation as an airline chatbot. The customer wants to book a flight ticket, the available flights are listed as {available_flight}.
+        Ask the user to specify the flight ID he keens, if he does choose a flight, ask for the following information:
+        - user ID
+        - user name
+        - passport number
+        - credit card number (16 digits)
+        - expiry_date
+        - cvv
+        Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
+        After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
+        if the user doesn't choose a flight, return false.
+        
+    """
+    messages = [{
+        "role": "system",
+        "content": instruction
+    }] + dialogue_history_list
+    while True:
+        
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.2,
+                timeout=30,
+                messages=messages,
+            )
+            
+            content = response.choices[0].message.content
+            print(f"Chatbot: {content}")
+            messages.append({"role": "assistant", "content": content})
+            
+            # Ask for confirmation if all necessary information is collected
+            if "confirm" in content.lower():
+                confirmation = input("User (yes/no): ").lower()
+                if confirmation == "confirm" or confirmation == "correct" or confirmation == "yes":
+                    print("Chatbot: Thank you! The information has been confirmed.")
+                    # Collect information into a JSON format
+                    return messages[-1]["content"]
+
+            user_input = input("User: ")
+            if user_input.lower() == "exit":
+                print("End conversation.")
+                break
+            messages.append({"role": "user", "content": user_input})
+        except Exception as e:
+            print(e)
+            time.sleep(0.5)
+    
+    
 def extract_information(content):
     
     instruction = f"""
@@ -73,6 +128,22 @@ def extract_information(content):
         Only extract the information, do not add any other words or phrases.
         Omit the information that is not necessary.
         The content given is: {content}
+        Only add the key-value pair for the information that is provided.
+        The keys for each information should be:
+        - query: purpose of the conversation (search, book, refund, exchange)
+        - departure: departure location
+        - destination: destination location
+        - date: departure date (YYYY-MM-DD)
+        - flight_class: flight class (First/Business/Economy) for both booking and exchange
+        - num_passengers: number of passengers for both booking and exchange
+        - user_id: user ID 
+        - user_name: customer name
+        - passport_num: passport number
+        - flight_id: flight ID
+        - card_number: 16-digit card number
+        - expiry_date: expiration date (MM/YY)
+        - cvv: 3-digit CVV
+        - order_id: order ID
     """
     messages = [{
         "role": "system",
@@ -96,3 +167,28 @@ if __name__ == "__main__":
     information = conversation()
     extracted_information = extract_information(information)
     print(extracted_information)
+    
+    try:
+        data_dict = json.loads(extracted_information)
+        print("The information is valid JSON.")
+        if data_dict["query"] == "search":
+            available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
+        elif data_dict["query"] == "book":
+            available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
+            # show available flights to user, then ask if he wants to book
+            book_flight = conversation_book(available_flight)
+            extracted_information_add = extract_information(book_flight)
+            
+            data_dict_add = json.loads(extracted_information_add) # concat two dictionaries
+            data_dict.update(data_dict_add)
+            print("User information JSON updated")
+            
+            book_ticket = cli.book_ticket(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["flight_id"], data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"], data_dict["user_id"])
+        elif data_dict["query"] == "refund":
+            cli.refund(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["order_id"])
+        elif data_dict["query"] == "exchange":
+            cli.exchange_ticket(data_dict["order_id"], data_dict["passport_num"], data_dict["user_id"], data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
+
+    except json.JSONDecodeError:
+        print("The information is not valid JSON.")
+    

@@ -73,7 +73,7 @@ def check_order(order_id, passport_num, user_id):
 
     return True
 
-def exchange_ticket(order_id, passport_num, user_id, departure, destination, date, flight_class, num_passengers_to_change,card_number, expiry_date, cvv):
+def exchange_ticket(order_id, passport_num, user_id, departure, destination, date, flight_class, num_passengers_to_change, card_number, expiry_date, cvv):
     # user_id = int(input("Enter user ID: "))
     # order_id = input("Enter your order ID: ")
     # passport_num = int(input("Enter Passport: "))
