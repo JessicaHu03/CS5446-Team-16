@@ -93,8 +93,6 @@ def extract_information(content):
         print(e)
         time.sleep(0.5)
 if __name__ == "__main__":
-    # purpose = ask_purpose()
-    # print(purpose)
     information = conversation()
     extracted_information = extract_information(information)
     print(extracted_information)
