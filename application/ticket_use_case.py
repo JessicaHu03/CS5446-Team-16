@@ -49,7 +49,7 @@ class TicketUseCase:
         self.flight_repository.update_flight_stock(new_flight, -num_passengers_to_change)
         self.flight_repository.update_flight_stock(flight, +num_passengers_to_change)
         
-        return new_ticket
+        return new_ticket, price_gap
 
     def refund_ticket(self, user_id, user_name,passport_num, order_id):
 

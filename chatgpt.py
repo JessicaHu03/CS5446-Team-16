@@ -68,21 +68,78 @@ def conversation():
             print(e)
             time.sleep(0.5)
 
+def conversation_search(available_flight):
+    instruction = f"""
+        Task Description:
+        You are simulating a conversation as an airline chatbot. The customer wants to search for available flights, the available flights are listed as {available_flight}.
+        You should first omit the first, ninth, tenth and twelvth column, show the user flight information starting from the second column
+        List and show the available flights and their details.
+        The columns of the table are: flight id,departure location, destination, departure time, arrival time, flight duration, class, price.
+        After that, end the conversation.
+    """
+    messages = [{
+        "role": "system",
+        "content": instruction
+    }] + dialogue_history_list
+    
+    while True:
+        
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.2,
+                timeout=30,
+                messages=messages,
+            )
+            
+            content = response.choices[0].message.content
+            print(f"Chatbot: {content}")
+            messages.append({"role": "assistant", "content": content})
+            
+            # Ask for confirmation if all necessary information is collected
+            if "confirm" in content.lower():
+                confirmation = input("User (yes/no): ").lower()
+                if confirmation == "confirm" or confirmation == "correct" or confirmation == "yes":
+                    print("Chatbot: Thank you! The information has been confirmed.")
+                    # Collect information into a JSON format
+                    return messages[-1]["content"]
+
+            user_input = input("User: ")
+            if user_input.lower() == "exit":
+                print("End conversation.")
+                break
+            messages.append({"role": "user", "content": user_input})
+        except Exception as e:
+            print(e)
+            time.sleep(0.5)
+    
+    
 def conversation_book(available_flight):
     
     instruction = f"""
         Task Description:
-        You are simulating a conversation as an airline chatbot. The customer wants to book a flight ticket, the available flights are listed as {available_flight}.
-        Ask the user to specify the flight ID he keens, if he does choose a flight, ask for the following information:
+        You are simulating a conversation as an airline chatbot. The customer wants to search or book for available flights, the available flights are listed as {available_flight}.
+        If there's no available flight (none), simply tell the user no flight found.
+        If there's flight available,
+        You should first omit the first, ninth, tenth and twelvth columns
+        for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show ('SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
+        List and show ALL the available flights.
+        The columns of the table are: flight id,departure location, destination, departure time, arrival time, flight duration, class, price.
+        
+        Ask the user if there's flight he keens, if he does, ask for the following information one by one:
+        - flight ID
         - user ID
         - user name
         - passport number
         - credit card number (16 digits)
         - expiry_date
         - cvv
+        and set "book" = True
         Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
+        DO NOT change any information to * when confirming.
         After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
-        if the user doesn't choose a flight, return false.
+        
+        If the user doesn't choose a flight, set "book" = False.
         
     """
     messages = [{
@@ -144,6 +201,8 @@ def extract_information(content):
         - expiry_date: expiration date (MM/YY)
         - cvv: 3-digit CVV
         - order_id: order ID
+        
+        DO NOT add ```json ``` in the response
     """
     messages = [{
         "role": "system",
@@ -153,7 +212,7 @@ def extract_information(content):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.2,
+            temperature=0.1,
             timeout=30,
             messages=messages,
         )
@@ -163,6 +222,8 @@ def extract_information(content):
     except Exception as e:
         print(e)
         time.sleep(0.5)
+        
+        
 if __name__ == "__main__":
     information = conversation()
     extracted_information = extract_information(information)
@@ -171,18 +232,23 @@ if __name__ == "__main__":
     try:
         data_dict = json.loads(extracted_information)
         print("The information is valid JSON.")
-        if data_dict["query"] == "search":
-            available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
-        elif data_dict["query"] == "book":
+        # if data_dict["query"] == "search":
+        #     available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
+        #     book_flight = conversation_book(available_flight)
+            
+        if data_dict["query"] == "search" or data_dict["query"] == "book":
             available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
             book_flight = conversation_book(available_flight)
+            print("-----")
+            print(book_flight)
             extracted_information_add = extract_information(book_flight)
-            
+            print("-----")
+            print(extracted_information_add)
             data_dict_add = json.loads(extracted_information_add) # concat two dictionaries
             data_dict.update(data_dict_add)
             print("User information JSON updated")
-            
-            book_ticket = cli.book_ticket(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["flight_id"], data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"], data_dict["user_id"])
+            book_ticket = cli.book_ticket(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["flight_id"], data_dict["num_passengers"], data_dict["flight_class"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
+        
         elif data_dict["query"] == "refund":
             cli.refund(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["order_id"])
         elif data_dict["query"] == "exchange":
