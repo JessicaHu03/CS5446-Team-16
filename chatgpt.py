@@ -24,11 +24,11 @@ def conversation():
         - **Search Available Tickets**: departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.
         - **Booking Tickets**: all info for available tickets
         - **Refund**: user ID, name, passport number, order ID.
-        - **Exchange**: same as refund, plus new flight details (departure, destination, departure date (YYYY-MM-DD), new flight class (First/Business/Economy), new number of passengers), and payment info (card number, expiration date, CVV).
+        - **Exchange**: Ask user to first provide order information: user ID, name, passport number, order ID
         Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
         3. After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response. also add a key-value pair where key is "query", and purpose is the purpose of this conversation (available options are only search, book, refund, exchange) as the last row of the summary.
         """
-        
+    #, plus new flight details (departure, destination, departure date (YYYY-MM-DD), new flight class (First/Business/Economy), new number of passengers), and payment info (card number, expiration date, CVV).
     messages = [{
         "role": "system",
         "content": instruction
@@ -68,14 +68,15 @@ def conversation():
             print(e)
             time.sleep(0.5)
 
-def conversation_search(available_flight):
+def conversation_search_for_exchange():
     instruction = f"""
         Task Description:
-        You are simulating a conversation as an airline chatbot. The customer wants to search for available flights, the available flights are listed as {available_flight}.
-        You should first omit the first, ninth, tenth and twelvth column, show the user flight information starting from the second column
-        List and show the available flights and their details.
-        The columns of the table are: flight id,departure location, destination, departure time, arrival time, flight duration, class, price.
-        After that, end the conversation.
+        You are simulating a conversation as an airline chatbot. Your job is to search for available flights
+        perform step by step.
+        1. Collect the necessary information based on the request by asking the information one by one, in order to avoid ambiguity.:
+        - departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.
+         Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
+        3. After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response. also add a key-value pair where key is "query", and purpose is the purpose of this conversation (available options are only search, book, refund, exchange) as the last row of the summary.
     """
     messages = [{
         "role": "system",
@@ -227,7 +228,7 @@ def extract_information(content):
 if __name__ == "__main__":
     information = conversation()
     extracted_information = extract_information(information)
-    print(extracted_information)
+    # print(extracted_information)
     
     try:
         data_dict = json.loads(extracted_information)
@@ -239,21 +240,44 @@ if __name__ == "__main__":
         if data_dict["query"] == "search" or data_dict["query"] == "book":
             available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
             book_flight = conversation_book(available_flight)
-            print("-----")
-            print(book_flight)
+            # print("-----")
+            # print(book_flight)
             extracted_information_add = extract_information(book_flight)
-            print("-----")
-            print(extracted_information_add)
+            # print("-----")
+            # print(extracted_information_add)
             data_dict_add = json.loads(extracted_information_add) # concat two dictionaries
             data_dict.update(data_dict_add)
             print("User information JSON updated")
             book_ticket = cli.book_ticket(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["flight_id"], data_dict["num_passengers"], data_dict["flight_class"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
         
         elif data_dict["query"] == "refund":
-            cli.refund(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["order_id"])
+            refund_result = cli.refund(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["order_id"])
+            if not refund_result:
+                print("Ticket not refunded due to error.")
+            else:
+                print("Ticket refunded.")
+                
         elif data_dict["query"] == "exchange":
-            cli.exchange_ticket(data_dict["order_id"], data_dict["passport_num"], data_dict["user_id"], data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
+            check_order = cli.check_order(data_dict["order_id"], data_dict["passport_num"], data_dict["user_id"])
+            if not check_order:
+                print("Ticket not exchangable due to error.")
+            else:
+                available_info = conversation_search_for_exchange()
+                extracted_available_info = extract_information(available_info)
+                
+                available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
+                book_flight = conversation_book(available_flight)
 
+                extracted_information_add = extract_information(book_flight)
+                data_dict_add = json.loads(extracted_information_add) # concat two dictionaries
+                data_dict.update(data_dict_add)
+                
+                new_ticket, price_gap = cli.exchange_ticket(data_dict["order_id"], data_dict["passport_num"], data_dict["user_id"], data_dict["flight_id"], data_dict["num_passengers"], data_dict["flight_class"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
+                if new_ticket:
+                    print("Ticket exchanged.")
+                    print(f"Price gap: {price_gap}.")
+                else:
+                    print("Ticket not exchanged due to error.")
     except json.JSONDecodeError:
         print("The information is not valid JSON.")
     
