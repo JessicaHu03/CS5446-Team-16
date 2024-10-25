@@ -19,13 +19,12 @@ def available_tickets(departure, destination, date, flight_class, num_passengers
 
     available_flights = ticket_use_case.search_available_flights(
         departure, destination, date, flight_class, num_passengers)
-
+    flight = []
     print("Available flights:")
     for flight in available_flights:
         print(flight)
     
-    return flight
-
+    return available_flights
 
 def book_ticket(user_id, user_name, passport_num, flight_id, num_passengers, card_number, expiry_date, cvv):
     # flight_id = int(input("Enter flight ID to book: "))
@@ -66,20 +65,16 @@ def refund(user_id, user_name, passport_num, order_id):
 
     result = ticket_use_case.refund_ticket(
         user_id, user_name, passport_num, order_id)
-    if result:
-        print("Ticket refunded.")
-        return False
-    else:
-        print("Ticket not refunded due to error.")
-        return True
+    return result
 
 def check_order(order_id, passport_num, user_id):
     
     flight_id=ticket_use_case.get_user_flight_id(order_id, passport_num, user_id)
-
+    if flight_id is None:
+        return False
     return True
 
-def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passengers_to_change,card_number, expiry_date, cvv):
+def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passengers_to_change, flight_class, card_number, expiry_date, cvv):
     # user_id = int(input("Enter user ID: "))
     # order_id = input("Enter your order ID: ")
     # passport_num = int(input("Enter Passport: "))
