@@ -134,7 +134,7 @@ body {
 
 .messages .message.right .avatar {
 	float: right;
-	background: url('../image/machine.png');
+	background: url('../image/guy.jpg');
 }
 
 .messages .message.right .text_wrapper {
