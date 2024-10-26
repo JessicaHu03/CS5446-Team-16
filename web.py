@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import json
-import time
-import pickle
+from chatgpt import interface
 
 
 APP = Flask("airline chatbot")
@@ -16,7 +14,7 @@ def main_page():
 def chat():
     data = request.get_json()
     user_message = data.get('message')
-    response_message = 'ok'
+    response_message = interface(user_message)
     return jsonify({'reply': response_message})
 
 

@@ -104,29 +104,26 @@ $(document).ready(function () {
 		// It's just for simulation purposes.
         // Simulate a POST request to the Flask backend
         // For demonstration purposes, we'll simulate a response after a delay
-        setTimeout(function () {
-            // Simulated response from the server
-            let response = { reply: 'ok' };
+        // setTimeout(function () {
+        //     // Simulated response from the server
+        //     let response = { reply: 'ok' };
 
-            // Display the response on the left
-            showLeftMessage(response.reply);
-        }, 500)
+        //     // Display the response on the left
+        //     showLeftMessage(response.reply);
+        // }, 500)
 		// Design flask function, and modify the following code
         // Uncomment the following code to send a real POST request to your Flask backend
-        /*
         $.ajax({
-            url: '/chat', // Replace with your Flask route URL
+            url: '/chat',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ message: message }),
             success: function (response) {
-                // Display the server's response
                 showLeftMessage(response.reply);
             },
             error: function (error) {
                 console.log(error);
             },
         });
-        */
     });
 });

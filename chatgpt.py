@@ -8,7 +8,6 @@ import presentation.cli as cli
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key = api_key)
-# openai.api_key = api_key
 
 dialogue_history_list = [{"role": "assistant", "content": "Hi, how can I assist you today?"}]
 status = 'select'
