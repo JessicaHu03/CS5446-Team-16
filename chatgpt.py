@@ -158,7 +158,7 @@ def interface(user_input):
                 status = 'exchange_show_flight'
             else:
                 status = 'show_flight'
-                
+            
             available_flight = cli.available_tickets(user_info["departure"], user_info["destination"], user_info["date"], user_info["flight_class"], user_info["num_passengers"])
             # print(available_flight)
             instruction['show_flight'] = f"""
