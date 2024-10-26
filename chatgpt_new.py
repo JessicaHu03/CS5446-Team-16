@@ -94,7 +94,29 @@ instruction = {
         Order ID - The order or booking ID related to the ticket purchase.
         
         Instructions:
-        Request Information Sequentially in order:
+        Request Information Sequentially in order.
+
+        Prompt the user for each missing piece of information in a clear and concise manner.
+        Once All required details are gathered, display a summary of the information back to the user.
+        Example summary:
+        User ID: [User Input]
+        Name: [User Input]
+        Passport Number: [User Input]
+        Order ID: [User Input]
+        
+        After presenting the summary, wait for user confirmation before proceeding with any further steps 
+        Ask the user to confirm by only typing "confirm" in the chatbot.
+    """,
+    'exchange': f"""
+        Task Description:
+        As an airline chatbot, your role is to assist the user in exchanging a ticket. First, gather the following essential details:
+        User ID - The unique identifier assigned to the user.
+        Name - The user's name as it appears on the ticket.
+        Passport Number - The passport number associated with the booking.
+        Order ID - The order or booking ID related to the ticket purchase.
+        
+        Instructions:
+        Request Information Sequentially in order.
 
         Prompt the user for each missing piece of information in a clear and concise manner.
         Once All required details are gathered, display a summary of the information back to the user.
@@ -118,21 +140,25 @@ def interface(user_input):
     llm_output = None
     global instruction, status, messages, user_info, available_flight
     confirm_keyword = ["confirm", "correct", "yes"]
-    # print("status: ", status)
+
     if status == 'select':
         llm_output = conversation(user_input)
         if llm_output in ['search', 'book', 'refund', 'exchange']:
             status = llm_output
             messages = [{"role": "system", "content": instruction[status]}] # init message
 
-    if status == 'search' or status == 'book':
+    if status == 'search' or status == 'book' or status == 'exchange_search':
         if user_input.lower() in confirm_keyword:
             llm_output = "Please wait for a while..."
-            user_info = json.loads(extract_information(messages[-1]['content']))
+            user_info.update(json.loads(extract_information(messages[-1]['content'])))
             # print(user_info)
-            status = 'show_flight'
+            if status == 'exchange_search':
+                status = 'exchange_show_flight'
+            else:
+                status = 'show_flight'
+                
             available_flight = cli.available_tickets(user_info["departure"], user_info["destination"], user_info["date"], user_info["flight_class"], user_info["num_passengers"])
-            print(available_flight)
+            # print(available_flight)
             instruction['show_flight'] = f"""
             Task Description:
             You are an airline chatbot. The available flights are {available_flight}.
@@ -162,7 +188,7 @@ def interface(user_input):
         else:
             llm_output = conversation(user_input)
     
-    elif status == 'show_flight':
+    elif status == 'show_flight' or status == 'exchange_show_flight':
         no_booking = ['no', 'nope', 'none']
         if user_input.lower() in no_booking: # user doesn't want to book, pure searching
             llm_output = "No problem! If you need assistance in the future or want to search for flights again, feel free to ask. Have a great day!"
@@ -172,21 +198,34 @@ def interface(user_input):
             user_info_book = json.loads(extract_information(messages[-1]['content'])) 
             user_info.update(user_info_book)# concat two dictionaries
             print("User information JSON updated")
-            status = 'booking_after_confirmation'
+            if status == 'exchange_show_flight':
+                status = 'exchange_booking_after_confirmation'
+            else:
+                status = 'booking_after_confirmation'
         else:
             llm_output = conversation(user_input)
     
     if status == 'booking_after_confirmation':
+
         book_ticket = cli.book_ticket(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
         if book_ticket:
             llm_output = "Your ticket has been booked. Thank you for using our service!"
         else:
             llm_output = "Your booking is not successful. Please try again."
         status = "done"
+        
+    if status == 'exchange_booking_after_confirmation':
+        new_ticket, price_gap = cli.exchange_ticket(user_info["order_id"], user_info["passport_num"], user_info["user_id"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
+        if new_ticket:
+            llm_output = f"Your ticket has been exchanged. Price gap: {price_gap}.Thank you for using our service!"
+        else:
+            llm_output = "Your exchange is not successful. Please try again."
+        status = "done"
+    
     if status == 'refund':
         if user_input.lower() in confirm_keyword:
             llm_output = "Please wait for a while..."
-            user_info = json.loads(extract_information(messages[-1]['content']))
+            user_info.update(json.loads(extract_information(messages[-1]['content'])))
             refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
             if refund_result:
                 llm_output = "Your refund has been processed. Thank you for using our service!"
@@ -195,8 +234,19 @@ def interface(user_input):
             status = "done"
         else:
             llm_output = conversation(user_input)
- 
-        
+    if status == 'exchange':
+        if user_input.lower() in confirm_keyword:
+            llm_output = "Please wait for a while..."
+            user_info = json.loads(extract_information(messages[-1]['content']))
+            refund_result = cli.refund(user_info["order_id"], user_info["user_name"], user_info["passport_num"], user_info["user_id"])
+            
+            if refund_result:
+                status = 'exchange_search'
+            else:
+                llm_output = "Your order cannot be found. Please try again."
+        else:
+            llm_output = conversation(user_input)
+
     return llm_output   
         
             
