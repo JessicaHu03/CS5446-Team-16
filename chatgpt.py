@@ -11,174 +11,267 @@ client = OpenAI(api_key = api_key)
 # openai.api_key = api_key
 
 dialogue_history_list = [{"role": "assistant", "content": "Hi, how can I assist you today?"}]
-            
-def conversation():
-    instruction = f"""
-        Task Description:
-        You are simulating a conversation as an airline chatbot. Your job is to identify and respond to the customer's needs, available functions are only limited to searching for available flights, booking tickets, requesting refunds, or exchanging tickets.
-        perform step by step.
-        Steps:
-        1. Ask user what the purpose of the conversation is.
-        2. No matter what the user says first, collect the necessary information based on the request by asking the information one by one, in order to avoid ambiguity.:
+status = 'select'
+available_flight = ""
 
-        - **Search Available Tickets**: departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.
-        - **Booking Tickets**: all info for available tickets
-        - **Refund**: user ID, name, passport number, order ID.
-        - **Exchange**: Ask user to first provide order information: user ID, name, passport number, order ID
-        Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
-        3. After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response. also add a key-value pair where key is "query", and purpose is the purpose of this conversation (available options are only search, book, refund, exchange) as the last row of the summary.
-        """
-    #, plus new flight details (departure, destination, departure date (YYYY-MM-DD), new flight class (First/Business/Economy), new number of passengers), and payment info (card number, expiration date, CVV).
-    messages = [{
-        "role": "system",
-        "content": instruction
-    }] + dialogue_history_list
-    # print(f"Chatbot: No problem, I'll assist you to {purpose} flights.")
+instruction = {
+    'select': f"""
+        Task Description:
+        As an AI chatbot for an airline, your primary role is to assist customers by identifying their needs and providing support with specific functions. You can perform four main actions:
+
+        Searching for available flights
+        Booking tickets
+        Requesting refunds
+        Exchanging tickets
+        Instructions:
+        Identify the Customer's Intent:
+
+        Analyze the customer's input to determine their purpose in the conversation. If the intent is clear, proceed with the relevant action.
+        If the intent is unclear, ask follow-up questions to better understand their needs. Avoid making assumptions.
+        Available Actions:
+
+        Based on the identified intent, return one of the following keywords:
+        search - for checking available flights.
+        book - for booking tickets.
+        refund - for refund requests.
+        exchange - for ticket exchange requests.
+        Handling Ambiguity:
+
+        If the customer's input does not clearly indicate a specific action (e.g., they mention general travel plans without specific details), respond with clarifying questions to narrow down the scope of their request.
+        Examples:
+        If a customer says, “I need help with my flight,” ask if they are interested in a searching available flights, booking a new flight, or requesting support with refunds or exchanges.
+        
+        Expected Output:
+        For each clear customer intent, return only the appropriate action keyword (search, book, refund, exchange) to indicate the function they need.
+        Sample Responses:
+        Customer: “I want to find flights to New York for next month.”
+        Output: search
+        Customer: “I need to change my flight to a later date.”
+        Output: exchange
+        """,
+    'search': f"""
+        Task Description:
+        As an airline chatbot, your role is to guide the user in searching for available flights. When the user initiates a flight search, gather the following essential details:
+        1. Departure Location - Where the user will depart from.
+        2. Destination - Where the user wants to fly to.
+        3. Departure Date - In the format YYYY-MM-DD.
+        4. Flight Class - Specify as First, Business, or Economy.
+        5. Number of Passengers - The total number of passengers.
+        
+        Instructions:
+        Request Information Sequentially in order:
+
+        Prompt the user for each missing piece of information in a clear and concise manner.
+        Example prompt: “Please provide the departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.”
+        Display Summary When Information is Complete:
+
+        Once All required details are gathered, display a summary of the information back to the user.
+        Example summary:
+        Departure Location: [User Input]
+        Destination: [User Input]
+        Departure Date: [User Input]
+        Flight Class: [User Input]
+        Number of Passengers: [User Input]
+        Expected Behavior:
+
+        After presenting the summary, wait for user confirmation before proceeding with any further steps 
+        Sample Workflow:
+        User: “I want to find flights.”
+        Chatbot: “Great! Could you provide the departure location?”
+        User: “New York”
+        Chatbot: “And the destination?”
+        User: “[Destination],” and so on until all information is collected.
+        Chatbot (Summary): “To confirm, here's what I have: Departure from New York to [Destination] on [Date] in [Class] class for [Number of Passengers] passengers.”
+        Ask the user to confirm by only typing "confirm" in the chatbot.
+    """,
+    'show_flight': "",
+    'refund': f"""
+        Task Description:
+        As an airline chatbot, your role is to assist the user in requesting a refund for a booked ticket. First, gather the following essential details:
+        User ID - The unique identifier assigned to the user.
+        Name - The user's name as it appears on the ticket.
+        Passport Number - The passport number associated with the booking.
+        Order ID - The order or booking ID related to the ticket purchase.
+        
+        Instructions:
+        Request Information Sequentially in order.
+
+        Prompt the user for each missing piece of information in a clear and concise manner.
+        Once All required details are gathered, display a summary of the information back to the user.
+        Example summary:
+        User ID: [User Input]
+        Name: [User Input]
+        Passport Number: [User Input]
+        Order ID: [User Input]
+        
+        After presenting the summary, wait for user confirmation before proceeding with any further steps 
+        Ask the user to confirm by only typing "confirm" in the chatbot.
+    """,
+    'exchange': f"""
+        Task Description:
+        As an airline chatbot, your role is to assist the user in exchanging a ticket. First, gather the following essential details:
+        User ID - The unique identifier assigned to the user.
+        Name - The user's name as it appears on the ticket.
+        Passport Number - The passport number associated with the booking.
+        Order ID - The order or booking ID related to the ticket purchase.
+        
+        Instructions:
+        Request Information Sequentially in order.
+
+        Prompt the user for each missing piece of information in a clear and concise manner.
+        Once All required details are gathered, display a summary of the information back to the user.
+        Example summary:
+        User ID: [User Input]
+        Name: [User Input]
+        Passport Number: [User Input]
+        Order ID: [User Input]
+        
+        After presenting the summary, wait for user confirmation before proceeding with any further steps 
+        Ask the user to confirm by only typing "confirm" in the chatbot.
+    """
+}
+
+messages = [{"role": "system", "content": instruction[status]}]
+
+user_info = {}
+
+
+def interface(user_input):
+    llm_output = None
+    global instruction, status, messages, user_info, available_flight
+    confirm_keyword = ["confirm", "correct", "yes"]
+
+    if status == 'select':
+        llm_output = conversation(user_input)
+        if llm_output in ['search', 'book', 'refund', 'exchange']:
+            status = llm_output
+            messages = [{"role": "system", "content": instruction[status]}] # init message
+
+    if status == 'search' or status == 'book' or status == 'exchange_search':
+        if user_input.lower() in confirm_keyword:
+            llm_output = "Please wait for a while..."
+            user_info.update(json.loads(extract_information(messages[-1]['content'])))
+            # print(user_info)
+            if status == 'exchange_search':
+                status = 'exchange_show_flight'
+            else:
+                status = 'show_flight'
+                
+            available_flight = cli.available_tickets(user_info["departure"], user_info["destination"], user_info["date"], user_info["flight_class"], user_info["num_passengers"])
+            # print(available_flight)
+            instruction['show_flight'] = f"""
+            Task Description:
+            You are an airline chatbot. The available flights are {available_flight}.
+            If there's flight available,
+            You should omit the first, ninth, tenth and twelvth columns
+            for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show ('SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
+            List and show ALL the available flights.
+            The columns of the table are: flight id,departure location, destination, departure time, arrival time, flight duration, class, price.
+            If there's no available flight (none), simply tell the user no flight found.
+            
+            Ask the user if there's flight he keens, if he does, ask for the following information one by one:
+            - flight ID
+            - user ID
+            - user name
+            - passport number
+            - credit card number (16 digits)
+            - expiry_date (mm/yy)
+            - cvv
+            and set "book" = True
+            Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
+            DO NOT change any information to * when confirming.
+            After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
+            
+            """
+            messages = [{"role": "system", "content": instruction['show_flight']}]
+            user_input = ""
+        else:
+            llm_output = conversation(user_input)
     
-    collected_info = {}  # Dictionary to hold collected information
-    print("Chatbot: Enter hello to start the conversation.")
-    while True:
-        user_input = input("User: ")
-        if user_input.lower() == "exit":
-            print("End conversation.")
-            break
+    elif status == 'show_flight' or status == 'exchange_show_flight':
+        no_booking = ['no', 'nope', 'none']
+        if user_input.lower() in no_booking: # user doesn't want to book, pure searching
+            llm_output = "No problem! If you need assistance in the future or want to search for flights again, feel free to ask. Have a great day!"
+            status = 'done'
+        if user_input.lower() in confirm_keyword:
+            llm_output = "Please wait for a while..."
+            user_info_book = json.loads(extract_information(messages[-1]['content'])) 
+            user_info.update(user_info_book)# concat two dictionaries
+            print("User information JSON updated")
+            if status == 'exchange_show_flight':
+                status = 'exchange_booking_after_confirmation'
+            else:
+                status = 'booking_after_confirmation'
+        else:
+            llm_output = conversation(user_input)
+    
+    if status == 'booking_after_confirmation':
+
+        book_ticket = cli.book_ticket(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
+        if book_ticket:
+            llm_output = "Your ticket has been booked. Thank you for using our service!"
+        else:
+            llm_output = "Your booking is not successful. Please try again."
+        status = "done"
+        
+    if status == 'exchange_booking_after_confirmation':
+        new_ticket, price_gap = cli.exchange_ticket(user_info["order_id"], user_info["passport_num"], user_info["user_id"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
+        if new_ticket:
+            llm_output = f"Your ticket has been exchanged. Price gap: {price_gap}.Thank you for using our service!"
+        else:
+            llm_output = "Your exchange is not successful. Please try again."
+        status = "done"
+    
+    if status == 'refund':
+        if user_input.lower() in confirm_keyword:
+            llm_output = "Please wait for a while..."
+            user_info.update(json.loads(extract_information(messages[-1]['content'])))
+            refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
+            if refund_result:
+                llm_output = "Your refund has been processed. Thank you for using our service!"
+            else:
+                llm_output = "Your refund is not successful. Please try again."
+            status = "done"
+        else:
+            llm_output = conversation(user_input)
+    if status == 'exchange':
+        if user_input.lower() in confirm_keyword:
+            llm_output = "Please wait for a while..."
+            user_info = json.loads(extract_information(messages[-1]['content']))
+            refund_result = cli.refund(user_info["order_id"], user_info["user_name"], user_info["passport_num"], user_info["user_id"])
+            
+            if refund_result:
+                status = 'exchange_search'
+            else:
+                llm_output = "Your order cannot be found. Please try again."
+        else:
+            llm_output = conversation(user_input)
+
+    return llm_output   
+        
+            
+def conversation(user_input):
+    global messages
+    if user_input:
         messages.append({"role": "user", "content": user_input})
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.2,
+            timeout=30,
+            messages=messages,
+        )
         
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                temperature=0.2,
-                timeout=30,
-                messages=messages,
-            )
-            
-            content = response.choices[0].message.content
-            print(f"Chatbot: {content}")
-            messages.append({"role": "assistant", "content": content})
-            
-            # Ask for confirmation if all necessary information is collected
-            if "confirm" in content.lower():
-                confirmation = input("User (yes/no): ").lower()
-                if confirmation == "confirm" or confirmation == "correct" or confirmation == "yes":
-                    print("Chatbot: Thank you! The information has been confirmed.")
-                    # Collect information into a JSON format
-                    return messages[-1]["content"]
+        content = response.choices[0].message.content
+        messages.append({"role": "assistant", "content": content})
+        
+        return content
 
-        except Exception as e:
-            print(e)
-            time.sleep(0.5)
+    except Exception as e:
+        print(e)
+        time.sleep(0.5)
 
-def conversation_search_for_exchange():
-    instruction = f"""
-        Task Description:
-        You are simulating a conversation as an airline chatbot. Your job is to search for available flights
-        perform step by step.
-        1. Collect the necessary information based on the request by asking the information one by one, in order to avoid ambiguity.:
-        - departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.
-         Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
-        3. After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response. also add a key-value pair where key is "query", and purpose is the purpose of this conversation (available options are only search, book, refund, exchange) as the last row of the summary.
-    """
-    messages = [{
-        "role": "system",
-        "content": instruction
-    }] + dialogue_history_list
-    
-    while True:
-        
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                temperature=0.2,
-                timeout=30,
-                messages=messages,
-            )
-            
-            content = response.choices[0].message.content
-            print(f"Chatbot: {content}")
-            messages.append({"role": "assistant", "content": content})
-            
-            # Ask for confirmation if all necessary information is collected
-            if "confirm" in content.lower():
-                confirmation = input("User (yes/no): ").lower()
-                if confirmation == "confirm" or confirmation == "correct" or confirmation == "yes":
-                    print("Chatbot: Thank you! The information has been confirmed.")
-                    # Collect information into a JSON format
-                    return messages[-1]["content"]
-
-            user_input = input("User: ")
-            if user_input.lower() == "exit":
-                print("End conversation.")
-                break
-            messages.append({"role": "user", "content": user_input})
-        except Exception as e:
-            print(e)
-            time.sleep(0.5)
-    
-    
-def conversation_book(available_flight):
-    
-    instruction = f"""
-        Task Description:
-        You are simulating a conversation as an airline chatbot. The customer wants to search or book for available flights, the available flights are listed as {available_flight}.
-        If there's no available flight (none), simply tell the user no flight found.
-        If there's flight available,
-        You should first omit the first, ninth, tenth and twelvth columns
-        for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show ('SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
-        List and show ALL the available flights.
-        The columns of the table are: flight id,departure location, destination, departure time, arrival time, flight duration, class, price.
-        
-        Ask the user if there's flight he keens, if he does, ask for the following information one by one:
-        - flight ID
-        - user ID
-        - user name
-        - passport number
-        - credit card number (16 digits)
-        - expiry_date
-        - cvv
-        and set "book" = True
-        Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
-        DO NOT change any information to * when confirming.
-        After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
-        
-        If the user doesn't choose a flight, set "book" = False.
-        
-    """
-    messages = [{
-        "role": "system",
-        "content": instruction
-    }] + dialogue_history_list
-    while True:
-        
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                temperature=0.2,
-                timeout=30,
-                messages=messages,
-            )
-            
-            content = response.choices[0].message.content
-            print(f"Chatbot: {content}")
-            messages.append({"role": "assistant", "content": content})
-            
-            # Ask for confirmation if all necessary information is collected
-            if "confirm" in content.lower():
-                confirmation = input("User (yes/no): ").lower()
-                if confirmation == "confirm" or confirmation == "correct" or confirmation == "yes":
-                    print("Chatbot: Thank you! The information has been confirmed.")
-                    # Collect information into a JSON format
-                    return messages[-1]["content"]
-
-            user_input = input("User: ")
-            if user_input.lower() == "exit":
-                print("End conversation.")
-                break
-            messages.append({"role": "user", "content": user_input})
-        except Exception as e:
-            print(e)
-            time.sleep(0.5)
-    
-    
 def extract_information(content):
     
     instruction = f"""
@@ -218,66 +311,13 @@ def extract_information(content):
             messages=messages,
         )
         content = response.choices[0].message.content
-        # print(content)
         return content
     except Exception as e:
         print(e)
         time.sleep(0.5)
-        
-        
-if __name__ == "__main__":
-    information = conversation()
-    extracted_information = extract_information(information)
-    # print(extracted_information)
-    
-    try:
-        data_dict = json.loads(extracted_information)
-        print("The information is valid JSON.")
-        # if data_dict["query"] == "search":
-        #     available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
-        #     book_flight = conversation_book(available_flight)
-            
-        if data_dict["query"] == "search" or data_dict["query"] == "book":
-            available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
-            book_flight = conversation_book(available_flight)
-            # print("-----")
-            # print(book_flight)
-            extracted_information_add = extract_information(book_flight)
-            # print("-----")
-            # print(extracted_information_add)
-            data_dict_add = json.loads(extracted_information_add) # concat two dictionaries
-            data_dict.update(data_dict_add)
-            print("User information JSON updated")
-            book_ticket = cli.book_ticket(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["flight_id"], data_dict["num_passengers"], data_dict["flight_class"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
-        
-        elif data_dict["query"] == "refund":
-            refund_result = cli.refund(data_dict["user_id"], data_dict["user_name"], data_dict["passport_num"], data_dict["order_id"])
-            if not refund_result:
-                print("Ticket not refunded due to error.")
-            else:
-                print("Ticket refunded.")
-                
-        elif data_dict["query"] == "exchange":
-            check_order = cli.check_order(data_dict["order_id"], data_dict["passport_num"], data_dict["user_id"])
-            if not check_order:
-                print("Ticket not exchangable due to error.")
-            else:
-                available_info = conversation_search_for_exchange()
-                extracted_available_info = extract_information(available_info)
-                
-                available_flight = cli.available_tickets(data_dict["departure"], data_dict["destination"], data_dict["date"], data_dict["flight_class"], data_dict["num_passengers"])
-                book_flight = conversation_book(available_flight)
-
-                extracted_information_add = extract_information(book_flight)
-                data_dict_add = json.loads(extracted_information_add) # concat two dictionaries
-                data_dict.update(data_dict_add)
-                
-                new_ticket, price_gap = cli.exchange_ticket(data_dict["order_id"], data_dict["passport_num"], data_dict["user_id"], data_dict["flight_id"], data_dict["num_passengers"], data_dict["flight_class"], data_dict["card_number"], data_dict["expiry_date"], data_dict["cvv"])
-                if new_ticket:
-                    print("Ticket exchanged.")
-                    print(f"Price gap: {price_gap}.")
-                else:
-                    print("Ticket not exchanged due to error.")
-    except json.JSONDecodeError:
-        print("The information is not valid JSON.")
+ 
+if __name__ == "__main__": # mock frontend
+    while True:
+        user_input = input("User: ")
+        print("chatbot: ", interface(user_input))
     

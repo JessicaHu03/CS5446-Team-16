@@ -20,13 +20,13 @@ def available_tickets(departure, destination, date, flight_class, num_passengers
     available_flights = ticket_use_case.search_available_flights(
         departure, destination, date, flight_class, num_passengers)
     flight = []
-    print("Available flights:")
-    for flight in available_flights:
-        print(flight)
+    # print("Available flights:")
+    # for flight in available_flights:
+    #     print(flight)
     
     return available_flights
 
-def book_ticket(user_id, user_name, passport_num, flight_id, num_passengers, card_number, expiry_date, cvv):
+def book_ticket(user_id, user_name, passport_num, flight_id, num_passengers, flight_class, card_number, expiry_date, cvv):
     # flight_id = int(input("Enter flight ID to book: "))
     # user_id = int(input("Enter user ID: "))
     # user_name = input("Enter your name: ")
