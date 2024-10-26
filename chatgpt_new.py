@@ -103,7 +103,7 @@ def interface(user_input):
             status = llm_output
             messages = [{"role": "system", "content": instruction[status]}] # init message
 
-    if status == 'search':
+    if status == 'search' or status == 'book':
         if user_input.lower() in confirm_keyword:
             llm_output = "Please wait for a while..."
             user_info = json.loads(extract_information(messages[-1]['content']))
