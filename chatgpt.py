@@ -127,7 +127,7 @@ instruction = {
         
         After presenting the summary, wait for user confirmation before proceeding with any further steps 
         Ask the user to confirm by only typing "confirm" in the chatbot.
-    """
+    """,
 }
 
 messages = [{"role": "system", "content": instruction[status]}]
@@ -144,7 +144,10 @@ def interface(user_input):
         llm_output = conversation(user_input)
         if llm_output in ['search', 'book', 'refund', 'exchange']:
             status = llm_output
-            messages = [{"role": "system", "content": instruction[status]}] # init message
+            if status == 'search' or status == 'book':
+                messages = [{"role": "system", "content": instruction['search']}] # init message
+            else:
+                messages = [{"role": "system", "content": instruction[status]}] # init message
 
     if status == 'search' or status == 'book' or status == 'exchange_search':
         if user_input.lower() in confirm_keyword:
@@ -257,7 +260,7 @@ def conversation(user_input):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.2,
+            temperature=0.1,
             timeout=30,
             messages=messages,
         )
