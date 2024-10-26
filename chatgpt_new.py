@@ -74,7 +74,7 @@ instruction = {
         Number of Passengers: [User Input]
         Expected Behavior:
 
-        After presenting the summary, wait for user confirmation before proceeding with any further steps (e.g., searching for flights based on the provided criteria).
+        After presenting the summary, wait for user confirmation before proceeding with any further steps 
         Sample Workflow:
         User: “I want to find flights.”
         Chatbot: “Great! Could you provide the departure location?”
@@ -84,7 +84,29 @@ instruction = {
         Chatbot (Summary): “To confirm, here's what I have: Departure from New York to [Destination] on [Date] in [Class] class for [Number of Passengers] passengers.”
         Ask the user to confirm by only typing "confirm" in the chatbot.
     """,
-    'show_flight': ""
+    'show_flight': "",
+    'refund': f"""
+        Task Description:
+        As an airline chatbot, your role is to assist the user in requesting a refund for a booked ticket. First, gather the following essential details:
+        User ID - The unique identifier assigned to the user.
+        Name - The user's name as it appears on the ticket.
+        Passport Number - The passport number associated with the booking.
+        Order ID - The order or booking ID related to the ticket purchase.
+        
+        Instructions:
+        Request Information Sequentially in order:
+
+        Prompt the user for each missing piece of information in a clear and concise manner.
+        Once All required details are gathered, display a summary of the information back to the user.
+        Example summary:
+        User ID: [User Input]
+        Name: [User Input]
+        Passport Number: [User Input]
+        Order ID: [User Input]
+        
+        After presenting the summary, wait for user confirmation before proceeding with any further steps 
+        Ask the user to confirm by only typing "confirm" in the chatbot.
+    """
 }
 
 messages = [{"role": "system", "content": instruction[status]}]
@@ -144,18 +166,37 @@ def interface(user_input):
         no_booking = ['no', 'nope', 'none']
         if user_input.lower() in no_booking: # user doesn't want to book, pure searching
             llm_output = "No problem! If you need assistance in the future or want to search for flights again, feel free to ask. Have a great day!"
+            status = 'done'
         if user_input.lower() in confirm_keyword:
             llm_output = "Please wait for a while..."
             user_info_book = json.loads(extract_information(messages[-1]['content'])) 
             user_info.update(user_info_book)# concat two dictionaries
             print("User information JSON updated")
-            status = 'booking'
+            status = 'booking_after_confirmation'
         else:
             llm_output = conversation(user_input)
     
-    if status == 'booking':
+    if status == 'booking_after_confirmation':
         book_ticket = cli.book_ticket(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
-        return book_ticket
+        if book_ticket:
+            llm_output = "Your ticket has been booked. Thank you for using our service!"
+        else:
+            llm_output = "Your booking is not successful. Please try again."
+        status = "done"
+    if status == 'refund':
+        if user_input.lower() in confirm_keyword:
+            llm_output = "Please wait for a while..."
+            user_info = json.loads(extract_information(messages[-1]['content']))
+            refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
+            if refund_result:
+                llm_output = "Your refund has been processed. Thank you for using our service!"
+            else:
+                llm_output = "Your refund is not successful. Please try again."
+            status = "done"
+        else:
+            llm_output = conversation(user_input)
+ 
+        
     return llm_output   
         
             
@@ -225,7 +266,7 @@ def extract_information(content):
         print(e)
         time.sleep(0.5)
  
-if __name__ == "__main__":
+if __name__ == "__main__": # mock frontend
     while True:
         user_input = input("User: ")
         print("chatbot: ", interface(user_input))
