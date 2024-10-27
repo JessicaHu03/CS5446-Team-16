@@ -17,11 +17,11 @@ instruction = {
     'select': f"""
         Task Description:
         As an AI chatbot for an airline, your primary role is to assist customers by identifying their needs and providing support with specific functions. You can perform four main actions:
-
         Searching for available flights
         Booking tickets
         Requesting refunds
         Exchanging tickets
+        
         Instructions:
         Identify the Customer's Intent:
 
@@ -151,7 +151,7 @@ def interface(user_input):
 
     if status == 'search' or status == 'book' or status == 'exchange_search':
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please wait for a while..."
+            llm_output = "Please press any key to continue..."
             user_info.update(json.loads(extract_information(messages[-1]['content'])))
             # print(user_info)
             if status == 'exchange_search':
@@ -178,7 +178,7 @@ def interface(user_input):
             - passport number
             - credit card number (16 digits)
             - expiry_date (mm/yy)
-            - cvv
+            - cvv (3 digits)
             and set "book" = True
             Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
             DO NOT change any information to * when confirming.
@@ -196,7 +196,7 @@ def interface(user_input):
             llm_output = "No problem! If you need assistance in the future or want to search for flights again, feel free to ask. Have a great day!"
             status = 'done'
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please wait for a while..."
+            llm_output = "Please press any key to continue..."
             user_info_book = json.loads(extract_information(messages[-1]['content'])) 
             user_info.update(user_info_book)# concat two dictionaries
             print("User information JSON updated")
@@ -226,7 +226,7 @@ def interface(user_input):
     
     if status == 'refund':
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please wait for a while..."
+            llm_output = "Please press any key to continue..."
             user_info.update(json.loads(extract_information(messages[-1]['content'])))
             refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
             if refund_result:
@@ -238,7 +238,7 @@ def interface(user_input):
             llm_output = conversation(user_input)
     if status == 'exchange':
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please wait for a while..."
+            llm_output = "Please press any key to continue..."
             user_info = json.loads(extract_information(messages[-1]['content']))
             refund_result = cli.refund(user_info["order_id"], user_info["user_name"], user_info["passport_num"], user_info["user_id"])
             
