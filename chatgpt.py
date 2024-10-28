@@ -133,11 +133,11 @@ instruction = {
 messages = [{"role": "system", "content": instruction[status]}]
 
 user_info = {}
-
+order_id = -1
 
 def interface(user_input):
     llm_output = None
-    global instruction, status, messages, user_info, available_flight
+    global instruction, status, messages, user_info, available_flight, order_id
     confirm_keyword = ["confirm", "correct", "yes"]
 
     if status == 'select':
@@ -150,6 +150,7 @@ def interface(user_input):
                 messages = [{"role": "system", "content": instruction[status]}] # init message
 
     if status == 'search' or status == 'book' or status == 'exchange_search':
+        
         if user_input.lower() in confirm_keyword:
             llm_output = "Please press any key to continue..."
             user_info.update(json.loads(extract_information(messages[-1]['content'])))
@@ -188,6 +189,7 @@ def interface(user_input):
             messages = [{"role": "system", "content": instruction['show_flight']}]
             user_input = ""
         else:
+            # print("run")
             llm_output = conversation(user_input)
     
     elif status == 'show_flight' or status == 'exchange_show_flight':
@@ -198,7 +200,7 @@ def interface(user_input):
         if user_input.lower() in confirm_keyword:
             llm_output = "Please press any key to continue..."
             user_info_book = json.loads(extract_information(messages[-1]['content'])) 
-            user_info.update(user_info_book)# concat two dictionaries
+            user_info.update(user_info_book) # concat two dictionaries
             print("User information JSON updated")
             if status == 'exchange_show_flight':
                 status = 'exchange_booking_after_confirmation'
@@ -217,11 +219,16 @@ def interface(user_input):
         status = "done"
         
     if status == 'exchange_booking_after_confirmation':
-        new_ticket, price_gap = cli.exchange_ticket(user_info["order_id"], user_info["passport_num"], user_info["user_id"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
-        if new_ticket:
-            llm_output = f"Your ticket has been exchanged. Price gap: {price_gap}.Thank you for using our service!"
+        print(user_info)
+        refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], order_id)
+        if "Ticket refunded" in refund_result:
+            new_ticket, price_gap = cli.exchange_ticket(order_id, user_info["passport_num"], user_info["user_id"], user_info["flight_id"], user_info["num_passengers"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
+            if new_ticket:
+                llm_output = f"Your ticket has been exchanged. Price gap: {price_gap}. Thank you for using our service!"
+            else:
+                llm_output = "Your exchange is not successful. But your ticket has been refunded. Please try again."
         else:
-            llm_output = "Your exchange is not successful. Please try again."
+            llm_output = refund_result
         status = "done"
     
     if status == 'refund':
@@ -229,23 +236,28 @@ def interface(user_input):
             llm_output = "Please press any key to continue..."
             user_info.update(json.loads(extract_information(messages[-1]['content'])))
             refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
-            if refund_result:
-                llm_output = "Your refund has been processed. Thank you for using our service!"
-            else:
-                llm_output = "Your refund is not successful. Please try again."
+            
+            llm_output = refund_result
             status = "done"
         else:
             llm_output = conversation(user_input)
+            
     if status == 'exchange':
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please press any key to continue..."
+            llm_output = "Please press any key to continue....."
             user_info = json.loads(extract_information(messages[-1]['content']))
-            refund_result = cli.refund(user_info["order_id"], user_info["user_name"], user_info["passport_num"], user_info["user_id"])
             
-            if refund_result:
-                status = 'exchange_search'
-            else:
-                llm_output = "Your order cannot be exchanged. Please try again."
+            # refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
+            # print(refund_result)
+            # if "Ticket refunded" in refund_result:
+            order_id = user_info['order_id']
+            print("order_id: ", order_id)
+            status = 'exchange_search'
+            user_input = ""
+            messages = [{"role": "system", "content": instruction['search']}]
+            # else:
+            #     llm_output = refund_result
+            #     status = 'done'
         else:
             llm_output = conversation(user_input)
 
@@ -282,6 +294,7 @@ def extract_information(content):
         Omit the information that is not necessary.
         The content given is: {content}
         Only add the key-value pair for the information that is provided.
+        If the information is not provided, do not add the key-value pair, neither the key.
         The keys for each information should be:
         - query: purpose of the conversation (search, book, refund, exchange)
         - departure: departure location

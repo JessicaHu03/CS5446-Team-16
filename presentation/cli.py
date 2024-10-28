@@ -11,11 +11,6 @@ ticket_use_case = TicketUseCase(flight_repo, payment_gateway, order_repo)
 
 
 def available_tickets(departure, destination, date, flight_class, num_passengers):
-    # departure = input("Enter departure city: ")
-    # destination = input("Enter destination city: ")
-    # date = input("Enter departure date (YYYY-MM-DD): ")
-    # flight_class = input("Enter flight class (Economy/Business): ")
-    # num_passengers = int(input("Enter number of passengers: "))
 
     available_flights = ticket_use_case.search_available_flights(
         departure, destination, date, flight_class, num_passengers)
@@ -27,16 +22,6 @@ def available_tickets(departure, destination, date, flight_class, num_passengers
     return available_flights
 
 def book_ticket(user_id, user_name, passport_num, flight_id, num_passengers, flight_class, card_number, expiry_date, cvv):
-    # flight_id = int(input("Enter flight ID to book: "))
-    # user_id = int(input("Enter user ID: "))
-    # user_name = input("Enter your name: ")
-    # passport_num = input("Enter your passport number: ")
-    # num_passengers = int(input("Enter number of passengers: "))
-    # payment_info = {
-    #     'card_number': input("Enter card number: "),
-    #     'expiry_date': input("Enter card expiry date (MM/YY): "),
-    #     'cvv': input("Enter CVV: ")
-    # }
     payment_info = {
         'card_number': card_number,
         'expiry_date': expiry_date,
@@ -74,22 +59,10 @@ def check_order(order_id, passport_num, user_id):
         return False
     return True
 
-def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passengers_to_change, flight_class, card_number, expiry_date, cvv):
-    # user_id = int(input("Enter user ID: "))
-    # order_id = input("Enter your order ID: ")
-    # passport_num = input("Enter Passport: ")
-
-    flight_id=ticket_use_case.get_user_flight_id(order_id, passport_num, user_id)
-    
-    # num_passengers_to_change = int(input("Enter number of passengers to exchange: "))
-    # new_flight_id = int(input("New flight id:"))
-
-    # payment_info = {
-    #     'card_number': input("Enter card number: "),
-    #     'expiry_date': input("Enter card expiry date (MM/YY): "),
-    #     'cvv': input("Enter CVV: ")
-    # }
-
+def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passengers_to_change, card_number, expiry_date, cvv):
+    print(order_id)
+    flight_id = ticket_use_case.get_user_flight_id(order_id, passport_num, user_id)
+    print(flight_id)
     payment_info = {
         'card_number': card_number,
         'expiry_date': expiry_date,

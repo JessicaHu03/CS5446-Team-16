@@ -26,12 +26,13 @@ class OrderRepository:
         query = 'SELECT * FROM "orders" WHERE id = ? AND user_id = ?'
         cursor.execute(query, (order_id, user_id))
         order = cursor.fetchone()
-        
+        # print(order)
         query = 'SELECT * FROM "User" WHERE id = ? AND passport_num = ?'
         cursor.execute(query, (user_id, passport_num))
         user = cursor.fetchone()
         connection.close()
-        
+        # print(user)
+
         return order is not None and user is not None
     
     def get_flight_by_order(self, order_id):

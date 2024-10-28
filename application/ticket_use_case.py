@@ -30,20 +30,25 @@ class TicketUseCase:
         return ticket
 
     def get_user_flight_id(self, order_id, passport_num, user_id):
-        is_correct = self.order_repository.is_order_correct(order_id, user_id, passport_num) # check user input
-        
-        if not is_correct:
-            return None
+        # is_correct = self.order_repository.is_order_correct(order_id, user_id, passport_num) # check user input
+        # print("is_correct: ", is_correct)
+        # if not is_correct:
+        #     return None
             # raise OrderDoesNotExistException("Order does not exist or is not yours")
         return self.order_repository.get_flight_by_order(order_id)
     
     def exchange_ticket(self, order_id, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info):
-        flight_id=flight_id[0]
+        print(flight_id)
+        flight_id = flight_id[0]
+        print(flight_id)
         flight = self.flight_repository.get_flight_by_id(flight_id)
         new_flight = self.flight_repository.get_flight_by_id(new_flight_id)
+        print("flight: ", flight)
+        print("new_flight: ", new_flight)
         
         if not new_flight or new_flight[8] < num_passengers_to_change: #flight[8] is stock, this code is temporary.
-            raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
+            return("Not enough tickets available for the selected flight.")
+            # raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
         
         price_gap = (flight[10]-new_flight[10]) * num_passengers_to_change #flight[10] is price, this code is temporary.
         if price_gap > 0:
@@ -57,19 +62,19 @@ class TicketUseCase:
 
         new_ticket = Ticket(order_id, new_flight, user_id, num_passengers_to_change, price_gap) #flight[10] is price, this code is temporary.
 
-        print(f"Returning exchanged ticket: {new_ticket}, price_gap: {price_gap}")
+        # print(f"Returning exchanged ticket: {new_ticket}, price_gap: {price_gap}")
 
         return new_ticket
+
 
     def refund_ticket(self, user_id, user_name,passport_num, order_id):
         try:
             flight_id = self.get_user_flight_id(order_id, passport_num, user_id)[0] #[0] is flight id, this code is temporary.
         except:
-            return False
-        print("checking")
+            return("Order does not exist or is not yours")
+        
         is_refundable = self.flight_repository.is_flight_refundable(flight_id) # check if is refundable
-        
-        
+
         if is_refundable:
             # check status
             print(self.order_repository.check_order_status(order_id))
@@ -78,15 +83,12 @@ class TicketUseCase:
                 self.flight_repository.update_flight_stock(flight_id, 1) # update flight stock
                 refund_price = self.flight_repository.get_flight_by_id(flight_id)[-2] # get flight price
                 self.payment_gateway.process_payment(refund_price, user_name) # mock refund
-            
-                return True
+                
+                return(f"Ticket refunded. Refund price: {refund_price}.")
             
             else: 
-                print("ticket status wrong")
-                return False
+                return("Ticket status error. May not be refundable or has been exchanged/refunded.")
         else:
-            print("cannot refund")
-            return False
-            
-            # raise FlightNotRefundableException("Flight cannot be refunded")
+            return("Ticket unrefundable")
+
         
