@@ -6,7 +6,8 @@ def main():
         print("1. Search available tickets")
         print("2. Book a ticket")
         print("3. Refund a ticket")
-        print("4: Exit system")
+        print("4: Exchange a ticket")
+        print("5: Exit system")
         choice = input("Enter your choice: ")
         
         if choice == '1':
@@ -17,6 +18,8 @@ def main():
             refund()    
         elif choice == '4':
             exchange_ticket()
+        elif choice == '5':
+            exit
         else:
             print("Invalid choice. Please try again.")
 

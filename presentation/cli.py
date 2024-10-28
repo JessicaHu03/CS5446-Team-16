@@ -77,16 +77,13 @@ def check_order(order_id, passport_num, user_id):
 def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passengers_to_change, flight_class, card_number, expiry_date, cvv):
     # user_id = int(input("Enter user ID: "))
     # order_id = input("Enter your order ID: ")
-    # passport_num = int(input("Enter Passport: "))
+    # passport_num = input("Enter Passport: ")
 
     flight_id=ticket_use_case.get_user_flight_id(order_id, passport_num, user_id)
     
-    # departure = input("Enter departure city: ")
-    # destination = input("Enter destination city: ")
-    # date = input("Enter departure date (YYYY-MM-DD): ")
-    # flight_class = input("Enter flight class (Economy/Business): ")
-    # num_passengers_to_change = int(input("Enter number of passengers to exchange: "))
-    
+    num_passengers_to_change = int(input("Enter number of passengers to exchange: "))
+    new_flight_id = int(input("New flight id:"))
+
     # payment_info = {
     #     'card_number': input("Enter card number: "),
     #     'expiry_date': input("Enter card expiry date (MM/YY): "),
@@ -99,13 +96,8 @@ def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passenge
         'cvv': cvv
     }
 
-    try:
-        new_ticket, price_gap = ticket_use_case.exchange_ticket(
-            flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info
-        )
-        print("Ticket exchanged successfully:", new_ticket)
-
-    except Exception as e:
-        print(f"Error: {e}")
+    new_ticket = ticket_use_case.exchange_ticket(order_id, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info)
+    price_gap = new_ticket.total_price
+    print("Ticket exchanged successfully:", new_ticket)
     
     return new_ticket, price_gap

@@ -1,5 +1,5 @@
 class Flight:
-    def __init__(self, flight_num, departure, destination, departure_time, arrival_time, duration, flight_class, price, is_refundable):
+    def __init__(self, flight_num, departure, destination, departure_time, arrival_time, duration, flight_class, price, is_refundable, stock):
         self.flight_num = flight_num
         self.departure = departure
         self.destination = destination
@@ -9,3 +9,4 @@ class Flight:
         self.flight_class = flight_class
         self.price = price
         self.is_refundable = is_refundable
+        self.stock = stock

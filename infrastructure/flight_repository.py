@@ -24,8 +24,6 @@ class FlightRepository:
         print(f"Flights found: {flights}")
         return flights
 
-
-
     def get_flight_by_id(self, flight_id):
         connection = self.connect()
         cursor = connection.cursor()
@@ -47,6 +45,6 @@ class FlightRepository:
         connection = self.connect()
         cursor = connection.cursor()
         query = 'SELECT is_refundable FROM Flight WHERE id = ?'
-        cursor.execute(query, (flight_id))
+        cursor.execute(query, (flight_id,))
         is_refundable = cursor.fetchone()[0]
         return is_refundable
