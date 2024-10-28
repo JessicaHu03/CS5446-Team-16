@@ -58,11 +58,11 @@ instruction = {
         5. Number of Passengers - The total number of passengers.
         
         Instructions:
-        Request Information Sequentially in order:
-
+        Request Information sequentially in order
+        
         Prompt the user for each missing piece of information in a clear and concise manner.
         Example prompt: “Please provide the departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.”
-        Display Summary When Information is Complete:
+        Display Summary When Information is complete:
 
         Once All required details are gathered, display a summary of the information back to the user.
         Example summary:
@@ -233,7 +233,7 @@ def interface(user_input):
     
     if status == 'refund':
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please press any key to continue..."
+            llm_output = "Please press 'a' key to continue..."
             user_info.update(json.loads(extract_information(messages[-1]['content'])))
             refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
             
@@ -244,7 +244,7 @@ def interface(user_input):
             
     if status == 'exchange':
         if user_input.lower() in confirm_keyword:
-            llm_output = "Please press any key to continue....."
+            llm_output = "Please press 'a' key to continue....."
             user_info = json.loads(extract_information(messages[-1]['content']))
             
             # refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
@@ -261,6 +261,12 @@ def interface(user_input):
         else:
             llm_output = conversation(user_input)
 
+    if status == 'done':
+        llm_output += "\n\n The conversation has ended. You may now close the window. Thank you for using our service!"
+        status = 'ready_to_exit'
+    elif status == 'ready_to_exit':
+        exit(0)
+        
     return llm_output   
         
             
@@ -272,7 +278,7 @@ def conversation(user_input):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.1,
+            temperature=0.2,
             timeout=30,
             messages=messages,
         )
