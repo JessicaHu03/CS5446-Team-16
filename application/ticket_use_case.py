@@ -1,4 +1,5 @@
 from domain.ticket import Ticket
+from domain.flight import Flight
 from domain.exceptions import TicketNotAvailableException, OrderDoesNotExistException, FlightNotRefundableException
 
 class TicketUseCase:
@@ -14,14 +15,17 @@ class TicketUseCase:
 
     def book_ticket(self, flight_id, user_id, num_passengers, payment_info):
         flight = self.flight_repository.get_flight_by_id(flight_id)
-        if not flight or flight.stock < num_passengers:
+        if not flight or flight[8] < num_passengers: #flight[8] is stock, this code is temporary.
             raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
         
-        total_price = flight.price * num_passengers
-        self.payment_gateway.process_payment(payment_info, total_price)
+        total_price = flight[10] * num_passengers #flight[10] is price, this code is temporary.
         
-        ticket = Ticket(flight, user_id, num_passengers, total_price)
+        self.payment_gateway.process_payment(payment_info, total_price)
         self.flight_repository.update_flight_stock(flight_id, -num_passengers)
+        order_id = self.order_repository.book_ticket(flight_id, user_id, 'Booked')
+        
+        ticket = Ticket(order_id, flight, user_id, num_passengers, total_price)
+
         return ticket
 
     def get_user_flight_id(self, order_id, passport_num, user_id):
@@ -31,36 +35,47 @@ class TicketUseCase:
             raise OrderDoesNotExistException("Order does not exist or is not yours")
         return self.order_repository.get_flight_by_order(order_id)
     
-    def exchange_ticket(self, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info):
-        
+    def exchange_ticket(self, order_id, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info):
+        flight_id=flight_id[0]
         flight = self.flight_repository.get_flight_by_id(flight_id)
         new_flight = self.flight_repository.get_flight_by_id(new_flight_id)
         
-        if not new_flight_id or new_flight_id.stock < num_passengers_to_change:
+        if not new_flight or new_flight[8] < num_passengers_to_change: #flight[8] is stock, this code is temporary.
             raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
         
-        price_gap = (flight.price-new_flight.price) * num_passengers_to_change
+        price_gap = (flight[10]-new_flight[10]) * num_passengers_to_change #flight[10] is price, this code is temporary.
         if price_gap > 0:
             self.payment_gateway.process_payment(payment_info, price_gap)
         if price_gap < 0:
             self.payment_gateway.process_payment(payment_info, -price_gap)
         
-        new_ticket = Ticket(new_flight, user_id, num_passengers_to_change, new_flight.price)
-        self.flight_repository.update_flight_stock(new_flight, -num_passengers_to_change)
-        self.flight_repository.update_flight_stock(flight, +num_passengers_to_change)
-        
-        return new_ticket, price_gap
+        self.flight_repository.update_flight_stock(new_flight_id, -num_passengers_to_change)
+        self.flight_repository.update_flight_stock(flight_id, +num_passengers_to_change)
+        order_id = self.order_repository.update_exchange_info(order_id, new_flight_id)
+
+        new_ticket = Ticket(order_id, new_flight, user_id, num_passengers_to_change, price_gap) #flight[10] is price, this code is temporary.
+
+        print(f"Returning exchanged ticket: {new_ticket}, price_gap: {price_gap}")
+
+        return new_ticket
 
     def refund_ticket(self, user_id, user_name,passport_num, order_id):
 
-        flight_id = self.get_user_flight_id(order_id, passport_num, user_id)
+        flight_id = self.get_user_flight_id(order_id, passport_num, user_id)[0] #[0] is flight id, this code is temporary.
         is_refundable = self.flight_repository.is_flight_refundable(flight_id) # check if is refundable
         if is_refundable:
-            self.flight_repository.update_flight_stock(flight_id, 1) # update flight stock
-            refund_price = self.flight_repository.get_flight_by_id(flight_id)[-2] # get flight price
-            self.payment_gateway.process_payment(refund_price, user_name) # mock refund
+            # check status
+            if self.order_repository.check_order_status(flight_id) == "Booked":
+                self.order_repository.update_refund_info(flight_id)
+                self.flight_repository.update_flight_stock(flight_id, 1) # update flight stock
+                refund_price = self.flight_repository.get_flight_by_id(flight_id)[-2] # get flight price
+                self.payment_gateway.process_payment(refund_price, user_name) # mock refund
             
-            return True
+                return True
+            
+            else: 
+                return False
         else:
-            raise FlightNotRefundableException("Flight cannot be refunded")
+            return False
+            # raise FlightNotRefundableException("Flight cannot be refunded")
         
