@@ -81,8 +81,8 @@ def exchange_ticket(order_id, passport_num, user_id, new_flight_id, num_passenge
 
     flight_id=ticket_use_case.get_user_flight_id(order_id, passport_num, user_id)
     
-    num_passengers_to_change = int(input("Enter number of passengers to exchange: "))
-    new_flight_id = int(input("New flight id:"))
+    # num_passengers_to_change = int(input("Enter number of passengers to exchange: "))
+    # new_flight_id = int(input("New flight id:"))
 
     # payment_info = {
     #     'card_number': input("Enter card number: "),
