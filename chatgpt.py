@@ -141,7 +141,7 @@ def interface(user_input):
     confirm_keyword = ["confirm", "correct", "yes"]
 
     if status == 'select':
-        llm_output = conversation(user_input)
+        llm_output = conversation("I want to " + user_input)
         if llm_output in ['search', 'book', 'refund', 'exchange']:
             status = llm_output
             if status == 'search' or status == 'book':
@@ -165,17 +165,17 @@ def interface(user_input):
             Task Description:
             You are an airline chatbot. The available flights are {available_flight}.
             If there's flight available,
-            You should omit the first, ninth, tenth and twelvth columns
-            for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show ('SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
+            You should omit the ninth, tenth and twelvth columns
+            for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
             List and show ALL the available flights.
-            The columns of the table are: flight id,departure location, destination, departure time, arrival time, flight duration, class, price.
+            The columns of the table are: flight id, flight number, departure location, destination, departure time, arrival time, flight duration, class, price.
             If there's no available flight (none), simply tell the user no flight found.
             
             Ask the user if there's flight he keens, if he does, ask for the following information one by one:
             - flight ID
-            - user ID
+            - user ID (digits)
             - user name
-            - passport number
+            - passport number (digits)
             - credit card number (16 digits)
             - expiry_date (mm/yy)
             - cvv (3 digits)
@@ -211,7 +211,7 @@ def interface(user_input):
 
         book_ticket = cli.book_ticket(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["flight_id"], user_info["num_passengers"], user_info["flight_class"], user_info["card_number"], user_info["expiry_date"], user_info["cvv"])
         if book_ticket:
-            llm_output = "Your ticket has been booked. Thank you for using our service!"
+            llm_output = f"Your ticket has been booked. Ticket ID: {book_ticket.order_id}. Thank you for using our service!"
         else:
             llm_output = "Your booking is not successful. Please try again."
         status = "done"
@@ -245,7 +245,7 @@ def interface(user_input):
             if refund_result:
                 status = 'exchange_search'
             else:
-                llm_output = "Your order cannot be found. Please try again."
+                llm_output = "Your order cannot be exchanged. Please try again."
         else:
             llm_output = conversation(user_input)
 

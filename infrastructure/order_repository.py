@@ -43,24 +43,24 @@ class OrderRepository:
         connection.close()
         return flight_id
     
-    def check_order_status(self, flight_id):
+    def check_order_status(self, order_id):
         connection = self.connect()
         cursor = connection.cursor()
         
-        query = 'SELECT status FROM "orders" WHERE flight_id = ?'
-        cursor.execute(query, (flight_id,))
+        query = 'SELECT status FROM "orders" WHERE id = ?'
+        cursor.execute(query, (order_id,))
         
         status = cursor.fetchone()
         connection.close()
         
         return status[0] if status else None
     
-    def update_refund_info(self, flight_id):
+    def update_refund_info(self, order_id):
         connection = self.connect()
         cursor = connection.cursor()
         
-        query = 'UPDATE "orders" SET status = ? WHERE flight_id = ?'
-        cursor.execute(query, ("Refunded", flight_id))
+        query = 'UPDATE "orders" SET status = ? WHERE id = ?'
+        cursor.execute(query, ("Refunded", order_id))
         
         connection.commit()
         connection.close()

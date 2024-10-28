@@ -16,7 +16,8 @@ class TicketUseCase:
     def book_ticket(self, flight_id, user_id, num_passengers, payment_info):
         flight = self.flight_repository.get_flight_by_id(flight_id)
         if not flight or flight[8] < num_passengers: #flight[8] is stock, this code is temporary.
-            raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
+            return None
+            # raise TicketNotAvailableException("Not enough tickets available for the selected flight.")
         
         total_price = flight[10] * num_passengers #flight[10] is price, this code is temporary.
         
@@ -32,7 +33,8 @@ class TicketUseCase:
         is_correct = self.order_repository.is_order_correct(order_id, user_id, passport_num) # check user input
         
         if not is_correct:
-            raise OrderDoesNotExistException("Order does not exist or is not yours")
+            return None
+            # raise OrderDoesNotExistException("Order does not exist or is not yours")
         return self.order_repository.get_flight_by_order(order_id)
     
     def exchange_ticket(self, order_id, flight_id, new_flight_id, user_id, num_passengers_to_change, payment_info):
@@ -60,13 +62,19 @@ class TicketUseCase:
         return new_ticket
 
     def refund_ticket(self, user_id, user_name,passport_num, order_id):
-
-        flight_id = self.get_user_flight_id(order_id, passport_num, user_id)[0] #[0] is flight id, this code is temporary.
+        try:
+            flight_id = self.get_user_flight_id(order_id, passport_num, user_id)[0] #[0] is flight id, this code is temporary.
+        except:
+            return False
+        print("checking")
         is_refundable = self.flight_repository.is_flight_refundable(flight_id) # check if is refundable
+        
+        
         if is_refundable:
             # check status
-            if self.order_repository.check_order_status(flight_id) == "Booked":
-                self.order_repository.update_refund_info(flight_id)
+            print(self.order_repository.check_order_status(order_id))
+            if self.order_repository.check_order_status(order_id) == "Booked":
+                self.order_repository.update_refund_info(order_id)
                 self.flight_repository.update_flight_stock(flight_id, 1) # update flight stock
                 refund_price = self.flight_repository.get_flight_by_id(flight_id)[-2] # get flight price
                 self.payment_gateway.process_payment(refund_price, user_name) # mock refund
@@ -74,8 +82,11 @@ class TicketUseCase:
                 return True
             
             else: 
+                print("ticket status wrong")
                 return False
         else:
+            print("cannot refund")
             return False
+            
             # raise FlightNotRefundableException("Flight cannot be refunded")
         
