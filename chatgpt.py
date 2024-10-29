@@ -189,7 +189,6 @@ def interface(user_input):
             messages = [{"role": "system", "content": instruction['show_flight']}]
             user_input = ""
         else:
-            # print("run")
             llm_output = conversation(user_input)
     
     elif status == 'show_flight' or status == 'exchange_show_flight':
@@ -246,18 +245,13 @@ def interface(user_input):
         if user_input.lower() in confirm_keyword:
             llm_output = "Please press 'a' key to continue....."
             user_info = json.loads(extract_information(messages[-1]['content']))
-            
-            # refund_result = cli.refund(user_info["user_id"], user_info["user_name"], user_info["passport_num"], user_info["order_id"])
-            # print(refund_result)
-            # if "Ticket refunded" in refund_result:
+
             order_id = user_info['order_id']
             print("order_id: ", order_id)
             status = 'exchange_search'
             user_input = ""
             messages = [{"role": "system", "content": instruction['search']}]
-            # else:
-            #     llm_output = refund_result
-            #     status = 'done'
+
         else:
             llm_output = conversation(user_input)
 
