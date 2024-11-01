@@ -53,12 +53,12 @@ instruction = {
         As an airline chatbot, your role is to guide the user in searching for available flights. When the user initiates a flight search, gather the following essential details:
         1. Departure Location - Where the user will depart from.
         2. Destination - Where the user wants to fly to.
-        3. Departure Date - In the format YYYY-MM-DD.
+        3. Departure Date - In the format YYYY-MM-DD. The date should fall within November 2024.
         4. Flight Class - Specify as First, Business, or Economy.
         5. Number of Passengers - The total number of passengers.
         
         Instructions:
-        Request Information sequentially in order
+        Request Information sequentially in order, unless multiple details can be provided in a single input for user.
         
         Prompt the user for each missing piece of information in a clear and concise manner.
         Example prompt: “Please provide the departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.”
@@ -93,7 +93,7 @@ instruction = {
         Order ID - The order or booking ID related to the ticket purchase.
         
         Instructions:
-        Request Information Sequentially in order.
+        Request Information Sequentially in order, unless multiple details can be provided in a single input for user.
 
         Prompt the user for each missing piece of information in a clear and concise manner.
         Once All required details are gathered, display a summary of the information back to the user.
@@ -115,7 +115,7 @@ instruction = {
         Order ID - The order or booking ID related to the ticket purchase.
         
         Instructions:
-        Request Information Sequentially in order.
+        Request Information Sequentially in order, unless multiple details can be provided in a single input for user.
 
         Prompt the user for each missing piece of information in a clear and concise manner.
         Once All required details are gathered, display a summary of the information back to the user.
@@ -162,32 +162,37 @@ def interface(user_input):
             
             available_flight = cli.available_tickets(user_info["departure"], user_info["destination"], user_info["date"], user_info["flight_class"], user_info["num_passengers"])
             # print(available_flight)
-            instruction['show_flight'] = f"""
-            Task Description:
-            You are an airline chatbot. The available flights are {available_flight}.
-            If there's flight available,
-            You should omit the ninth, tenth and twelvth columns
-            for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
-            List and show ALL the available flights.
-            The columns of the table are: flight id, flight number, departure location, destination, departure time, arrival time, flight duration, class, price.
-            If there's no available flight (none), simply tell the user no flight found.
+            if len(available_flight) == 0:
+                llm_output = "Sorry, no flight available. If you need assistance in the future or want to search for flights again, feel free to ask. Have a great day!"
+                status = 'done'
             
-            Ask the user if there's flight he keens, if he does, ask for the following information one by one:
-            - flight ID
-            - user ID (digits)
-            - user name
-            - passport number (digits)
-            - credit card number (16 digits)
-            - expiry_date (mm/yy)
-            - cvv (3 digits)
-            and set "book" = True
-            Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
-            DO NOT change any information to * when confirming.
-            After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
-            
-            """
-            messages = [{"role": "system", "content": instruction['show_flight']}]
-            user_input = ""
+            else:
+                instruction['show_flight'] = f"""
+                Task Description:
+                You are an airline chatbot. The available flights are {available_flight}.
+                If there's flight available,
+                You should omit the ninth, tenth and twelvth columns
+                for example: given (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 90, 0, 869.2, 0), you should only show (2642, 'SQ876', 'Singapore', 'Taipei', '2024-11-12 08:10', '2024-11-12 12:55', 285, 'economy', 869.2)
+                List and show ALL the available flights.
+                The columns of the table are: flight id, flight number, departure location, destination, departure time, arrival time, flight duration, class, price.
+                If there's no available flight (none), simply tell the user no flight found.
+                
+                Ask the user if there's flight he keens, if he does, ask for the following information one by one:
+                - flight ID
+                - user ID (digits)
+                - user name
+                - passport number (digits)
+                - credit card number (16 digits)
+                - expiry_date (mm/yy)
+                - cvv (3 digits)
+                and set "book" = True
+                Note that you can only ask user the above information, no other information should be asked. When asking for user specific information, do emphasize that the information will only be used for the purpose of this conversation.
+                DO NOT change any information to * when confirming.
+                After gathering all details, present the information back to the customer for confirmation and allow changes if needed by including the keyword 'confirm' in your response.
+                
+                """
+                messages = [{"role": "system", "content": instruction['show_flight']}]
+                user_input = ""
         else:
             llm_output = conversation(user_input)
     
@@ -196,6 +201,7 @@ def interface(user_input):
         if user_input.lower() in no_booking: # user doesn't want to book, pure searching
             llm_output = "No problem! If you need assistance in the future or want to search for flights again, feel free to ask. Have a great day!"
             status = 'done'
+
         if user_input.lower() in confirm_keyword:
             llm_output = "Please press any key to continue..."
             user_info_book = json.loads(extract_information(messages[-1]['content'])) 
@@ -257,9 +263,8 @@ def interface(user_input):
 
     if status == 'done':
         llm_output += "\n\n The conversation has ended. You may now close the window. Thank you for using our service!"
-        status = 'ready_to_exit'
-    elif status == 'ready_to_exit':
-        exit(0)
+        messages = [{"role": "system", "content": instruction['select']}]
+        status = 'select'
         
     return llm_output   
         
