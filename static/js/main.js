@@ -81,6 +81,18 @@ function windowOnload() {
 	// it needs a function to clear service cache
 	// clearCache();
 
+	$.ajax({
+		url: '/reset',
+		type: 'GET',
+		contentType: 'application/json',
+		success: function (response) {
+			console.log("init.")
+		},
+		error: function (error) {
+			console.log(error);
+		},
+	});
+
 	showLeftMessage('Hello, how can I assist you today?\n\nHere are some things I can help you with:\n- Search for available tickets\n- Book flights\n- Exchange flights\n- Process refunds');
 }
 

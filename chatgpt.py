@@ -9,131 +9,141 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key = api_key)
 
-dialogue_history_list = [{"role": "assistant", "content": "Hi, how can I assist you today?"}]
-status = 'select'
-available_flight = ""
-
-instruction = {
-    'select': f"""
-        Task Description:
-        As an AI chatbot for an airline, your primary role is to assist customers by identifying their needs and providing support with specific functions. You can perform four main actions:
-        Searching for available flights
-        Booking tickets
-        Requesting refunds
-        Exchanging tickets
-        
-        Instructions:
-        Identify the Customer's Intent:
-
-        Analyze the customer's input to determine their purpose in the conversation. If the intent is clear, proceed with the relevant action.
-        If the intent is unclear, ask follow-up questions to better understand their needs. Avoid making assumptions.
-        Available Actions:
-
-        Based on the identified intent, return one of the following keywords:
-        search - for checking available flights.
-        book - for booking tickets.
-        refund - for refund requests.
-        exchange - for ticket exchange requests.
-        Handling Ambiguity:
-
-        If the customer's input does not clearly indicate a specific action (e.g., they mention general travel plans without specific details), respond with clarifying questions to narrow down the scope of their request.
-        Examples:
-        If a customer says, “I need help with my flight,” ask if they are interested in a searching available flights, booking a new flight, or requesting support with refunds or exchanges.
-        
-        Expected Output:
-        For each clear customer intent, return only the appropriate action keyword (search, book, refund, exchange) to indicate the function they need.
-        Sample Responses:
-        Customer: “I want to find flights to New York for next month.”
-        Output: search
-        Customer: “I need to change my flight to a later date.”
-        Output: exchange
-        """,
-    'search': f"""
-        Task Description:
-        As an airline chatbot, your role is to guide the user in searching for available flights. When the user initiates a flight search, gather the following essential details:
-        1. Departure Location - Where the user will depart from.
-        2. Destination - Where the user wants to fly to.
-        3. Departure Date - In the format YYYY-MM-DD. The date should fall within November 2024.
-        4. Flight Class - Specify as First, Business, or Economy.
-        5. Number of Passengers - The total number of passengers.
-        
-        Instructions:
-        Request Information sequentially in order, unless multiple details can be provided in a single input for user.
-        
-        Prompt the user for each missing piece of information in a clear and concise manner.
-        Example prompt: “Please provide the departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.”
-        Display Summary When Information is complete:
-
-        Once All required details are gathered, display a summary of the information back to the user.
-        Example summary:
-        Departure Location: [User Input]
-        Destination: [User Input]
-        Departure Date: [User Input]
-        Flight Class: [User Input]
-        Number of Passengers: [User Input]
-        Expected Behavior:
-
-        After presenting the summary, wait for user confirmation before proceeding with any further steps 
-        Sample Workflow:
-        User: “I want to find flights.”
-        Chatbot: “Great! Could you provide the departure location?”
-        User: “New York”
-        Chatbot: “And the destination?”
-        User: “[Destination],” and so on until all information is collected.
-        Chatbot (Summary): “To confirm, here's what I have: Departure from New York to [Destination] on [Date] in [Class] class for [Number of Passengers] passengers.”
-        Ask the user to confirm by only typing "confirm" in the chatbot.
-    """,
-    'show_flight': "",
-    'refund': f"""
-        Task Description:
-        As an airline chatbot, your role is to assist the user in requesting a refund for a booked ticket. First, gather the following essential details:
-        User ID - The unique identifier assigned to the user.
-        Name - The user's name as it appears on the ticket.
-        Passport Number - The passport number associated with the booking.
-        Order ID - The order or booking ID related to the ticket purchase.
-        
-        Instructions:
-        Request Information Sequentially in order, unless multiple details can be provided in a single input for user.
-
-        Prompt the user for each missing piece of information in a clear and concise manner.
-        Once All required details are gathered, display a summary of the information back to the user.
-        Example summary:
-        User ID: [User Input]
-        Name: [User Input]
-        Passport Number: [User Input]
-        Order ID: [User Input]
-        
-        After presenting the summary, wait for user confirmation before proceeding with any further steps 
-        Ask the user to confirm by only typing "confirm" in the chatbot.
-    """,
-    'exchange': f"""
-        Task Description:
-        As an airline chatbot, your role is to assist the user in exchanging a ticket. First, gather the following essential details:
-        User ID - The unique identifier assigned to the user.
-        Name - The user's name as it appears on the ticket.
-        Passport Number - The passport number associated with the booking.
-        Order ID - The order or booking ID related to the ticket purchase.
-        
-        Instructions:
-        Request Information Sequentially in order, unless multiple details can be provided in a single input for user.
-
-        Prompt the user for each missing piece of information in a clear and concise manner.
-        Once All required details are gathered, display a summary of the information back to the user.
-        Example summary:
-        User ID: [User Input]
-        Name: [User Input]
-        Passport Number: [User Input]
-        Order ID: [User Input]
-        
-        After presenting the summary, wait for user confirmation before proceeding with any further steps 
-        Ask the user to confirm by only typing "confirm" in the chatbot.
-    """,
-}
-
-messages = [{"role": "system", "content": instruction[status]}]
-
+dialogue_history_list = None
+status = None
+available_flight = None
+instruction = None
+messages = None
 user_info = {}
 order_id = -1
+
+def init():
+    global instruction, status, messages, user_info, available_flight, order_id, dialogue_history_list
+    dialogue_history_list = [{"role": "assistant", "content": "Hi, how can I assist you today?"}]
+    status = 'select'
+    available_flight = ""
+
+    instruction = {
+        'select': f"""
+            Task Description:
+            As an AI chatbot for an airline, your primary role is to assist customers by identifying their needs and providing support with specific functions. You can perform four main actions:
+            Searching for available flights
+            Booking tickets
+            Requesting refunds
+            Exchanging tickets
+            
+            Instructions:
+            Identify the Customer's Intent:
+
+            Analyze the customer's input to determine their purpose in the conversation. If the intent is clear, proceed with the relevant action.
+            If the intent is unclear, ask follow-up questions to better understand their needs. Avoid making assumptions.
+            Available Actions:
+
+            Based on the identified intent, return one of the following keywords:
+            search - for checking available flights.
+            book - for booking tickets.
+            refund - for refund requests.
+            exchange - for ticket exchange requests.
+            Handling Ambiguity:
+
+            If the customer's input does not clearly indicate a specific action (e.g., they mention general travel plans without specific details), respond with clarifying questions to narrow down the scope of their request.
+            Examples:
+            If a customer says, “I need help with my flight,” ask if they are interested in a searching available flights, booking a new flight, or requesting support with refunds or exchanges.
+            
+            Expected Output:
+            For each clear customer intent, return only the appropriate action keyword (search, book, refund, exchange) to indicate the function they need.
+            Sample Responses:
+            Customer: “I want to find flights to New York for next month.”
+            Output: search
+            Customer: “I need to change my flight to a later date.”
+            Output: exchange
+            """,
+        'search': f"""
+            Task Description:
+            As an airline chatbot, your role is to guide the user in searching for available flights. When the user initiates a flight search, gather the following essential details:
+            1. Departure Location - Where the user will depart from.
+            2. Destination - Where the user wants to fly to.
+            3. Departure Date - In the format YYYY-MM-DD. The date should fall within November 2024.
+            4. Flight Class - Specify as First, Business, or Economy.
+            5. Number of Passengers - The total number of passengers.
+            
+            Instructions:
+            Request Information sequentially in order, unless multiple details can be provided in a single input for user.
+            
+            Prompt the user for each missing piece of information in a clear and concise manner.
+            Example prompt: “Please provide the departure location, destination, departure date (YYYY-MM-DD), flight class (First/Business/Economy), and number of passengers.”
+            Display Summary When Information is complete:
+
+            Once All required details are gathered, display a summary of the information back to the user.
+            Example summary:
+            Departure Location: [User Input]
+            Destination: [User Input]
+            Departure Date: [User Input]
+            Flight Class: [User Input]
+            Number of Passengers: [User Input]
+            Expected Behavior:
+
+            After presenting the summary, wait for user confirmation before proceeding with any further steps 
+            Sample Workflow:
+            User: “I want to find flights.”
+            Chatbot: “Great! Could you provide the departure location?”
+            User: “New York”
+            Chatbot: “And the destination?”
+            User: “[Destination],” and so on until all information is collected.
+            Chatbot (Summary): “To confirm, here's what I have: Departure from New York to [Destination] on [Date] in [Class] class for [Number of Passengers] passengers.”
+            Ask the user to confirm by only typing "confirm" in the chatbot.
+        """,
+        'show_flight': "",
+        'refund': f"""
+            Task Description:
+            As an airline chatbot, your role is to assist the user in requesting a refund for a booked ticket. First, gather the following essential details:
+            User ID - The unique identifier assigned to the user.
+            Name - The user's name as it appears on the ticket.
+            Passport Number - The passport number associated with the booking.
+            Order ID - The order or booking ID related to the ticket purchase.
+            
+            Instructions:
+            Request Information Sequentially in order, unless multiple details can be provided in a single input for user.
+
+            Prompt the user for each missing piece of information in a clear and concise manner.
+            Once All required details are gathered, display a summary of the information back to the user.
+            Example summary:
+            User ID: [User Input]
+            Name: [User Input]
+            Passport Number: [User Input]
+            Order ID: [User Input]
+            
+            After presenting the summary, wait for user confirmation before proceeding with any further steps 
+            Ask the user to confirm by only typing "confirm" in the chatbot.
+        """,
+        'exchange': f"""
+            Task Description:
+            As an airline chatbot, your role is to assist the user in exchanging a ticket. First, gather the following essential details:
+            User ID - The unique identifier assigned to the user.
+            Name - The user's name as it appears on the ticket.
+            Passport Number - The passport number associated with the booking.
+            Order ID - The order or booking ID related to the ticket purchase.
+            
+            Instructions:
+            Request Information Sequentially in order, unless multiple details can be provided in a single input for user.
+
+            Prompt the user for each missing piece of information in a clear and concise manner.
+            Once All required details are gathered, display a summary of the information back to the user.
+            Example summary:
+            User ID: [User Input]
+            Name: [User Input]
+            Passport Number: [User Input]
+            Order ID: [User Input]
+            
+            After presenting the summary, wait for user confirmation before proceeding with any further steps 
+            Ask the user to confirm by only typing "confirm" in the chatbot.
+        """,
+    }
+
+    messages = [{"role": "system", "content": instruction[status]}]
+
+    user_info = {}
+    order_id = -1
 
 def interface(user_input):
     llm_output = None
