@@ -81,7 +81,7 @@ function windowOnload() {
 	// it needs a function to clear service cache
 	// clearCache();
 
-	showLeftMessage('Hello, how can I assist you today?\n\nHere are some things I can help you with:\n1. Search for available tickets\n2. Book flights\n3. Exchange flights\n4. Process refunds');
+	showLeftMessage('Hello, how can I assist you today?\n\nHere are some things I can help you with:\n- Search for available tickets\n- Book flights\n- Exchange flights\n- Process refunds');
 }
 
 window.onload = windowOnload();
